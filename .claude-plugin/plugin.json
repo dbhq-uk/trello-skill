@@ -7,7 +7,7 @@
     "email": "dan@dbhq.uk"
   },
   "homepage": "https://dbhq.uk",
-  "repository": "https://github.com/dbhq-uk/trello",
+  "repository": "https://github.com/dbhq-uk/trello-skill",
   "license": "MIT",
   "keywords": ["trello", "kanban", "boards", "cards", "productivity", "shopping-list"]
 }
