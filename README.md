@@ -55,6 +55,10 @@ scripts/trello-setup.sh    # from skills/trello/
 
 You will create a free Trello Power-Up to generate the key and token. They are stored locally in `~/.trello/config.json` (permissions `600`) and never leave your machine. Full walkthrough in [`skills/trello/references/setup.md`](skills/trello/references/setup.md).
 
+## Development
+
+Want to hack on the pack, add a skill, or run it from source with live edits? See [`docs/dev-setup.md`](docs/dev-setup.md).
+
 ## Requirements
 
 `jq` · `curl`
