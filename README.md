@@ -39,8 +39,8 @@ Then talk to it: *"show my Trello boards"*, *"sort my shopping list into aisle o
 ### Local install (Claude Code or Codex)
 
 ```bash
-git clone https://github.com/dbhq-uk/trello.git
-cd trello
+git clone https://github.com/dbhq-uk/trello-skill.git
+cd trello-skill
 ./install.sh          # Claude Code: symlinks into ~/.claude/skills (edits are live)
 ./install-codex.sh    # Codex: installs into ~/.codex/skills
 ```

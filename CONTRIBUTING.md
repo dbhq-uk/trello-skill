@@ -4,14 +4,14 @@ Thanks for your interest - contributions are welcome.
 
 ## Ways to help
 
-- Report a bug or request a feature via [issues](https://github.com/dbhq-uk/trello/issues)
+- Report a bug or request a feature via [issues](https://github.com/dbhq-uk/trello-skill/issues)
 - Improve a skill, add a new Trello skill, or add a store preset for `store-sort`, via a pull request
 
 ## Local development
 
 ```bash
-git clone https://github.com/dbhq-uk/trello.git
-cd trello
+git clone https://github.com/dbhq-uk/trello-skill.git
+cd trello-skill
 ./install.sh          # symlinks all skills into ~/.claude/skills (edits are live)
 ```
 
