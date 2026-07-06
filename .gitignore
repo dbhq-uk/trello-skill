@@ -1,0 +1,12 @@
+# OS cruft
+.DS_Store
+Thumbs.db
+
+# Editors
+.vscode/
+.idea/
+*.swp
+
+# Local credentials must never be committed (they live in ~/.trello, not here)
+.trello/
+config.json
