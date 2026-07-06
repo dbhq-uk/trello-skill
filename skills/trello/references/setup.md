@@ -33,8 +33,10 @@
 
 ## Step 4: Run Setup
 
+Run `trello-setup.sh` from this skill's `scripts/` directory:
+
 ```bash
-~/.claude/skills/trello/scripts/trello-setup.sh
+scripts/trello-setup.sh
 ```
 
 Enter your API key and token when prompted. The script will:
@@ -44,7 +46,7 @@ Enter your API key and token when prompted. The script will:
 ## Step 5: Verify
 
 ```bash
-~/.claude/skills/trello/scripts/trello-boards.sh boards
+scripts/trello-boards.sh boards
 ```
 
 You should see a list of your Trello boards.

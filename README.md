@@ -1,192 +1,72 @@
-# Trello Board Management
+<div align="center">
 
-Manage Trello boards, lists, and cards from Claude Code via the Trello REST API.
+# 📋 Trello for Claude Code
 
-## Features
+**A pack of Trello skills for Claude Code and Codex - manage boards, sort your shopping, and stay on top of what's due, in plain language**
 
-- List and search boards
-- Create, update, move, and archive cards
-- Add and view comments
-- Reorder cards (top, bottom, or specific position)
-- Smart sort: group cards by category (e.g. a shopping list by store aisle)
-- View labels, members, and checklists
+[![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
+[![Claude Code](https://img.shields.io/badge/Claude_Code-Plugin-blueviolet)](https://code.claude.com/docs/en/plugins)
+[![Platform](https://img.shields.io/badge/Platform-Linux%20%7C%20macOS%20%7C%20WSL-lightgrey)]()
 
-## Quick Start
+A free, open-source tool by [DBHQ](https://dbhq.uk)
 
-### 1. Install Dependencies
+</div>
+
+---
+
+Four Trello skills that work together, all driven in plain language and powered by the Trello REST API.
+
+## The pack
+
+| Skill | What it does |
+|-------|--------------|
+| 📋 **trello** | Core board, list, and card management - create, move, position, label, comment, archive. Every card gets categorised. |
+| 🛒 **store-sort** | Reorders a shopping list into a supermarket's aisle flow with a food-type emoji on every card. Any store via presets; ships a Tesco (UK) preset. |
+| 📰 **board-digest** | A plain-English status snapshot of a board - lists and cards, what's due or overdue, and what moved recently. Great for a standup or weekly review. |
+| ⏰ **due-radar** | What's due, overdue, or coming up across all your boards, sorted by date, overdue first. |
+
+## Install
+
+### As a Claude Code plugin (recommended)
+
+```
+/plugin marketplace add dbhq-uk/marketplace
+/plugin install trello@dbhq
+```
+
+Then talk to it: *"show my Trello boards"*, *"sort my shopping list into aisle order"*, *"give me a standup for the Roadmap board"*, *"what's due this week?"*.
+
+### Local install (Claude Code or Codex)
 
 ```bash
-# macOS
-brew install jq curl
-
-# Ubuntu/Debian
-sudo apt install jq curl
+git clone https://github.com/dbhq-uk/trello.git
+cd trello
+./install.sh          # Claude Code: symlinks into ~/.claude/skills (edits are live)
+./install-codex.sh    # Codex: installs into ~/.codex/skills
 ```
 
-### 2. Install the Skill
+## Setup
 
-From the repo root:
+Run the trello skill's setup once to add your Trello API key and token:
 
 ```bash
-./install.sh trello
+scripts/trello-setup.sh    # from skills/trello/
 ```
 
-### 3. Run Setup
+You will create a free Trello Power-Up to generate the key and token. They are stored locally in `~/.trello/config.json` (permissions `600`) and never leave your machine. Full walkthrough in [`skills/trello/references/setup.md`](skills/trello/references/setup.md).
 
-```bash
-~/.claude/skills/trello/scripts/trello-setup.sh
-```
+## Requirements
 
-This will:
-1. Prompt for your API key and token
-2. Validate them against the Trello API
-3. Store credentials securely in `~/.trello/config.json`
+`jq` · `curl`
 
-### 4. Verify
+## Extending the pack
 
-```bash
-~/.claude/skills/trello/scripts/trello-boards.sh boards
-```
+`store-sort` reads its aisle order from a **preset** in `skills/store-sort/references/`. Copy `tesco.md` to add your own store. The pack is designed to grow - a board templater, quick-capture, and sprint reports are on the roadmap.
 
-You should see a list of your Trello boards.
+## Credentials and privacy
 
-## Getting API Credentials
+No secrets live in this repository. Your Trello key and token are stored locally under `~/.trello/` and used only to talk to the Trello API directly from your machine. The token grants full access to your account - keep it secret.
 
-1. Go to [trello.com/power-ups/admin](https://trello.com/power-ups/admin)
-2. Click **New** to create a Power-Up (any name, any workspace)
-3. Go to the **API Key** tab and generate a key
-4. Click the **Token** link next to your key to authorize and get a token
+## License
 
-See `references/setup.md` for detailed step-by-step instructions.
-
-## Usage
-
-### Board & List Commands
-
-```bash
-# List all boards
-~/.claude/skills/trello/scripts/trello-boards.sh boards
-
-# Find board by name (case-insensitive)
-~/.claude/skills/trello/scripts/trello-boards.sh find "Shopping"
-
-# Get board details
-~/.claude/skills/trello/scripts/trello-boards.sh board <board-id>
-
-# List all lists in a board
-~/.claude/skills/trello/scripts/trello-boards.sh lists <board-id>
-```
-
-### Card Commands
-
-```bash
-# List cards
-~/.claude/skills/trello/scripts/trello-cards.sh list <list-id>
-
-# Create card
-~/.claude/skills/trello/scripts/trello-cards.sh create <list-id> "Card title" "Optional description"
-
-# Read full card details
-~/.claude/skills/trello/scripts/trello-cards.sh read <card-id>
-
-# Update card field
-~/.claude/skills/trello/scripts/trello-cards.sh update <card-id> name "New title"
-
-# Move card to another list
-~/.claude/skills/trello/scripts/trello-cards.sh move <card-id> <list-id>
-
-# Position
-~/.claude/skills/trello/scripts/trello-cards.sh top <card-id>
-~/.claude/skills/trello/scripts/trello-cards.sh bottom <card-id>
-~/.claude/skills/trello/scripts/trello-cards.sh position <card-id> 12345
-
-# Comments
-~/.claude/skills/trello/scripts/trello-cards.sh comment <card-id> "Comment text"
-~/.claude/skills/trello/scripts/trello-cards.sh comments <card-id>
-
-# Archive & delete
-~/.claude/skills/trello/scripts/trello-cards.sh archive <card-id>
-~/.claude/skills/trello/scripts/trello-cards.sh unarchive <card-id>
-~/.claude/skills/trello/scripts/trello-cards.sh delete <card-id>
-
-# Details
-~/.claude/skills/trello/scripts/trello-cards.sh labels <card-id>
-~/.claude/skills/trello/scripts/trello-cards.sh members <card-id>
-~/.claude/skills/trello/scripts/trello-cards.sh checklist <card-id>
-```
-
-## Natural Language (via Claude)
-
-Once installed, you can use natural language:
-
-| You say | What happens |
-|---------|--------------|
-| "show my trello boards" | Lists all boards |
-| "what's on my shopping list" | Finds and lists cards on the matching board |
-| "add milk to shopping list" | Creates a card (with confirmation) |
-| "move X to Done" | Moves a card between lists |
-| "sort shopping list by aisle" | Smart-sorts cards by category |
-| "archive the completed cards" | Archives cards on a list |
-
-## File Structure
-
-```
-~/.claude/skills/trello/
-├── SKILL.md                    # Skill definition
-├── scripts/
-│   ├── trello-setup.sh         # One-time credential setup
-│   ├── trello-boards.sh        # Board & list operations
-│   └── trello-cards.sh         # Card operations
-└── references/
-    └── setup.md                # Manual setup guide
-
-~/.trello/
-└── config.json                 # API credentials (created by setup)
-```
-
-## Rate Limits
-
-Trello enforces these limits:
-- **300 requests per 10 seconds** per API key
-- **100 requests per 10 seconds** per token
-
-In practice this is generous for interactive use. Smart-sort operations on large lists (100+ cards) will stay within limits.
-
-## Troubleshooting
-
-### "Invalid credentials"
-- Double-check your API key and token in `~/.trello/config.json`
-- Make sure there are no extra spaces or newlines
-- Try regenerating the token from [Power-Up admin](https://trello.com/power-ups/admin)
-
-### "Board not found"
-- Use `trello-boards.sh boards` to list all visible boards
-- Make sure you're using the board ID (from the `[id]` prefix), not the name
-- Check if the board is archived
-
-### "Rate limited"
-- Wait a few seconds and retry
-- Avoid scripting tight loops of API calls
-
-### Re-run setup
-```bash
-~/.claude/skills/trello/scripts/trello-setup.sh
-```
-
-## Security Notes
-
-- Credentials stored with 600 permissions (owner read/write only)
-- Your API key and token grant **full access** to your Trello account — keep them secret
-- Never commit `~/.trello/` to version control
-
-## Uninstall
-
-```bash
-# Remove skill
-rm -rf ~/.claude/skills/trello
-
-# Remove credentials
-rm -rf ~/.trello
-```
-
-To revoke API access, delete the Power-Up at [trello.com/power-ups/admin](https://trello.com/power-ups/admin).
+[MIT](LICENSE) © 2026 DBHQ Consulting Ltd

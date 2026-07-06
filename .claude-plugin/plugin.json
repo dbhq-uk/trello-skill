@@ -1,0 +1,13 @@
+{
+  "name": "trello",
+  "description": "A pack of Trello skills for Claude Code and Codex - manage boards, lists and cards; sort a shopping list into store-aisle order; generate a board status digest; and see what is due across boards. Via the Trello REST API.",
+  "version": "1.0.0",
+  "author": {
+    "name": "DBHQ",
+    "email": "dan@dbhq.uk"
+  },
+  "homepage": "https://dbhq.uk",
+  "repository": "https://github.com/dbhq-uk/trello",
+  "license": "MIT",
+  "keywords": ["trello", "kanban", "boards", "cards", "productivity", "shopping-list"]
+}

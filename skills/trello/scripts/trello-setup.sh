@@ -16,7 +16,7 @@ echo "2. Create a new Power-Up (any name, any workspace)"
 echo "3. Go to the 'API Key' tab and generate a key"
 echo "4. Click 'Token' link next to the key to generate a token"
 echo
-echo "See ~/.claude/skills/trello/references/setup.md for detailed instructions."
+echo "See references/setup.md (in this skill directory) for detailed instructions."
 echo
 
 # Check if already configured
