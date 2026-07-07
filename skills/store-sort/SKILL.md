@@ -21,8 +21,8 @@ Reorders a Trello shopping list to match how a supermarket lays out its store, p
 There are no hardcoded defaults - nothing personal is baked into this skill. If the user has not named a board and list, ask. Then resolve IDs:
 
 ```bash
-${CLAUDE_PLUGIN_ROOT}/skills/trello/scripts/trello-boards.sh find "<board name>"
-${CLAUDE_PLUGIN_ROOT}/skills/trello/scripts/trello-boards.sh lists <board-id>
+${CLAUDE_SKILL_DIR}/../trello/scripts/trello-boards.sh find "<board name>"
+${CLAUDE_SKILL_DIR}/../trello/scripts/trello-boards.sh lists <board-id>
 ```
 
 If the user always sorts the same list, they can name it once ("the Shopping list on my Home board") and you resolve it each run - do not store personal board or list IDs in this skill.
@@ -36,25 +36,25 @@ If the user always sorts the same list, they can name it once ("the Shopping lis
 
 1. **Fetch current cards as JSON**
    ```bash
-   ${CLAUDE_PLUGIN_ROOT}/skills/trello/scripts/trello-cards.sh list-json <list-id>
+   ${CLAUDE_SKILL_DIR}/../trello/scripts/trello-cards.sh list-json <list-id>
    ```
 2. **Classify each card** by section using the active preset and the emoji reference.
 3. **Pantry-staples check** (optional, see below) before adding new staples.
 4. **Create any missing new cards** (one Bash call per card; batch them in a single message):
    ```bash
-   ${CLAUDE_PLUGIN_ROOT}/skills/trello/scripts/trello-cards.sh create <list-id> "🥫 Item name" ""
+   ${CLAUDE_SKILL_DIR}/../trello/scripts/trello-cards.sh create <list-id> "🥫 Item name" ""
    ```
 5. **Rename existing cards** to prepend the correct emoji if missing or wrong:
    ```bash
-   ${CLAUDE_PLUGIN_ROOT}/skills/trello/scripts/trello-cards.sh update <card-id> name "🥫 Marmite"
+   ${CLAUDE_SKILL_DIR}/../trello/scripts/trello-cards.sh update <card-id> name "🥫 Marmite"
    ```
 6. **Position every card** in the preset's canonical order with explicit pos values:
    ```bash
-   ${CLAUDE_PLUGIN_ROOT}/skills/trello/scripts/trello-cards.sh position <card-id> <pos>
+   ${CLAUDE_SKILL_DIR}/../trello/scripts/trello-cards.sh position <card-id> <pos>
    ```
 7. **Verify** and show the final ordering grouped by section:
    ```bash
-   ${CLAUDE_PLUGIN_ROOT}/skills/trello/scripts/trello-cards.sh list <list-id> 50
+   ${CLAUDE_SKILL_DIR}/../trello/scripts/trello-cards.sh list <list-id> 50
    ```
 
 Note: Trello sometimes auto-adjusts pos values (e.g. it picks 12500 instead of 12000). Always verify the *displayed order* afterwards, and only tweak individual cards with smaller position deltas if the order is actually wrong.
