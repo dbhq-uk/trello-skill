@@ -18,13 +18,13 @@ Resolve the board id if you only have a name, then run the digest:
 
 ```bash
 # Find the board
-${CLAUDE_PLUGIN_ROOT}/skills/trello/scripts/trello-boards.sh find "<board name>"
+${CLAUDE_SKILL_DIR}/../trello/scripts/trello-boards.sh find "<board name>"
 
 # Status snapshot (recent-activity window defaults to 7 days)
-${CLAUDE_PLUGIN_ROOT}/skills/board-digest/scripts/board-digest.sh digest <board-id>
+${CLAUDE_SKILL_DIR}/scripts/board-digest.sh digest <board-id>
 
 # Widen the activity window to, say, 14 days
-${CLAUDE_PLUGIN_ROOT}/skills/board-digest/scripts/board-digest.sh digest <board-id> 14
+${CLAUDE_SKILL_DIR}/scripts/board-digest.sh digest <board-id> 14
 ```
 
 The script prints four parts: a header with the open-card count, a per-list breakdown, a due-and-overdue section, and recent activity (created, moved, commented).
