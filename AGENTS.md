@@ -22,8 +22,8 @@ Each skill is `skills/<name>/SKILL.md` plus optional `scripts/` and `references/
 ## Conventions
 
 - Scripts are self-contained: they read credentials from `~/.trello/config.json` and have no bundled-path dependencies, so they run from any location.
-- The `trello` core skill owns setup and the shared API scripts. Other skills (e.g. `store-sort`) call the core scripts by their `${CLAUDE_PLUGIN_ROOT}/skills/trello/scripts/...` path.
-- SKILL.md references scripts via `${CLAUDE_PLUGIN_ROOT}`, which Claude Code substitutes for plugin installs. The installers rewrite that variable to the install path for local symlink installs (Claude and Codex).
+- The `trello` core skill owns setup and the shared API scripts. Other skills (e.g. `store-sort`) call the core scripts by their `${CLAUDE_SKILL_DIR}/../trello/scripts/...` path - `${CLAUDE_SKILL_DIR}` is the calling skill's own directory, so `../trello` is the sibling core skill (all skills sit side by side under the plugin / `~/.claude/skills/`).
+- SKILL.md references scripts via `${CLAUDE_SKILL_DIR}` (the skill's own directory), which Claude Code substitutes for personal, project, and plugin installs alike. `install.sh` therefore symlinks the whole skill directory into `~/.claude/skills/` (no rewrite). `install-codex.sh` still rewrites the variable to the install path, since Codex does not substitute it.
 - Shell scripts use `set -e`; errors go to stderr, structured output to stdout.
 - No secrets in the repo - credentials live under `~/.trello/`.
 - House style: British English, plain hyphens.

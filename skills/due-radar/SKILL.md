@@ -16,14 +16,14 @@ A cross-board triage view: every card with a due date, sorted by when it is due,
 
 ```bash
 # Across every open board (upcoming window defaults to 14 days)
-${CLAUDE_PLUGIN_ROOT}/skills/due-radar/scripts/due-radar.sh all
+${CLAUDE_SKILL_DIR}/scripts/due-radar.sh all
 
 # Look further ahead
-${CLAUDE_PLUGIN_ROOT}/skills/due-radar/scripts/due-radar.sh all 30
+${CLAUDE_SKILL_DIR}/scripts/due-radar.sh all 30
 
 # One board only
-${CLAUDE_PLUGIN_ROOT}/skills/trello/scripts/trello-boards.sh find "<board name>"
-${CLAUDE_PLUGIN_ROOT}/skills/due-radar/scripts/due-radar.sh board <board-id> 14
+${CLAUDE_SKILL_DIR}/../trello/scripts/trello-boards.sh find "<board name>"
+${CLAUDE_SKILL_DIR}/scripts/due-radar.sh board <board-id> 14
 ```
 
 All overdue cards are always shown; the day window only limits how far ahead upcoming items reach. Cards already marked complete are excluded.
