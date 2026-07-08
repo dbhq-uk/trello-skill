@@ -21,7 +21,7 @@ cd ~/dbhq-trello
 ./install-codex.sh    # Codex: installs into ~/.codex/skills
 ```
 
-The committed skills are plugin-native (script paths use `${CLAUDE_PLUGIN_ROOT}`). The installers symlink each skill's `scripts/` into your skills folder and generate `SKILL.md` with those paths rewritten for a non-plugin install. Scripts are live-linked; **after editing a `SKILL.md`, re-run `./install.sh`** to regenerate the installed copy.
+The committed skills reference their scripts via `${CLAUDE_SKILL_DIR}` (each skill's own directory), which Claude Code substitutes for personal, project and plugin installs alike. So `install.sh` symlinks **each whole skill directory** into `~/.claude/skills/` - `SKILL.md`, `scripts/` and `references/` are all live, and every edit (including `SKILL.md`) takes effect with no re-run. Re-run `install.sh` only when you add a new skill. Codex does not substitute `${CLAUDE_SKILL_DIR}`, so `install-codex.sh` rewrites it to the install path - **re-run `./install-codex.sh` after editing a `SKILL.md`** for Codex.
 
 ## 3. Credentials
 
@@ -48,4 +48,4 @@ Then, in Claude Code, try *"show my Trello boards"* or *"what's due this week?"*
 
 ## Working across machines
 
-Editing a **script** under `~/dbhq-trello` is live immediately. After editing a **`SKILL.md`**, re-run `./install.sh`. If you develop on more than one machine, `git pull` before you start and `git push` when done to keep them in sync.
+Editing **anything** under `~/dbhq-trello` (scripts or `SKILL.md`) is live immediately in Claude Code - each skill directory is symlinked whole. For Codex, re-run `./install-codex.sh` after a `SKILL.md` edit. If you develop on more than one machine, `git pull` before you start and `git push` when done to keep them in sync.
