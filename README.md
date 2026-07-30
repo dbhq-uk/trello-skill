@@ -38,6 +38,14 @@ Four Trello skills that work together, all driven in plain language and powered 
 
 Then talk to it: *"show my Trello boards"*, *"sort my shopping list into aisle order"*, *"give me a standup for the Roadmap board"*, *"what's due this week?"*.
 
+### Any agent (Cursor, Copilot, Windsurf, Gemini, Cline and more)
+
+```bash
+npx skills add dbhq-uk/trello-skill
+```
+
+The [skills.sh](https://skills.sh) CLI installs into whichever agent directories it finds, so this works outside Claude Code and Codex too. All four skills come in one command.
+
 ### Local install (Claude Code or Codex)
 
 ```bash
