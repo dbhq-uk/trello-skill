@@ -12,26 +12,31 @@ Canonical aisle order for a typical UK Tesco superstore, entrance to checkout. U
    - Chicken/turkey/poultry → beef/lamb/mince → bacon/sausages → fish (salmon, smoked salmon, prawns)
 4. **🥡 Chilled Meals & Fresh Pasta / Deli**
    - Chilled ready meals → fresh filled pasta/gnocchi → fresh chilled sauces → deli (dips/hummus, olives)
-5. **🧀 Dairy**
-   - Cheese (incl. burrata, feta, mozzarella, halloumi) → milk/cream → butter → eggs → yoghurt
-6. **🌶️ Spices & Dried Herbs**
-   - Dried herbs → ground spices/paprika/chilli → salt/pepper
-7. **🥫 Sauces, Jars, Tins & Dry Goods**
-   - Oils/vinegars/soy → honey/syrups/glazes → jarred sauces/condiments → pickles (gherkins/cornichons) → tinned (beans, chestnuts) → rice/grains/pasta → nuts/seeds → biscuits/snacks/crisps
+5. **🧀 Cold Section (chilled dairy)**
+   - Cheese (incl. burrata, feta, mozzarella, halloumi) → milk/cream → yoghurt. (Butter and eggs are **not** here - see sections 6 and 9.)
+6. **🌶️ Cooking Ingredients**
+   - Tomato purée → dried herbs → ground spices/paprika/chilli → salt/pepper → butter and cooking fats → oils/vinegars
+7. **🥫 Sauces, Pickles & Tins**
+   - Jarred cooking sauces → table sauces/condiments → pickles (gherkins/cornichons) → tinned (tomatoes, beans, chestnuts) → honey/syrups/glazes/jams
 8. **🫓 Bread & Bakery**
    - Loaves → flatbreads/pittas → wraps → crackers → shortbread/teacakes
-9. **🍵 Hot Drinks**
-   - Tea → coffee
-10. **💧 Soft Drinks**
+9. **🥚 Eggs**
+10. **🍝 Pasta, Rice, Noodles & World Foods**
+    - Pasta → rice/grains → garlic paste/purée → noodles → soy sauce and other world-food sauces → world foods (curry pastes, miso, coconut milk)
+11. **🍪 Snacks & Baking**
+    - Biscuits → crisps/savoury snacks → nuts/seeds → chocolate → sugar/flour/baking
+12. **🍵 Hot Drinks**
+    - Tea → coffee
+13. **💧 Soft Drinks**
     - Water/soda → squash → juice → fizzy
-11. **🧊 Frozen** (group with drinks if standalone, e.g. just "ice")
-12. **🥂 Beer, Wine & Spirits**
+14. **🧊 Frozen** (group with drinks if standalone, e.g. just "ice")
+15. **🥂 Beer, Wine & Spirits**
     - Beer → sparkling wine (prosecco, crémant, champagne) → white wine → rosé → red wine → fortified → spirits → liqueurs
-13. **🧴 Health & Beauty**
+16. **🧴 Health & Beauty**
     - Skincare/facial care → toiletries → cotton pads → toothpaste → soap → toilet roll
-14. **🧽 Household / Cleaning**
+17. **🧽 Household / Cleaning**
     - Laundry (detergent, sachets, softener) → dishwasher tabs → cleaning sprays → batteries → bin bags
-15. **🐾 Pet** (if present)
+18. **🐾 Pet** (if present)
 
 ## Position layout
 
@@ -41,31 +46,38 @@ Use a planned position layout like:
 - Veg: 4000-7999
 - Meat & Fish: 8000-9999
 - Chilled meals / fresh pasta / deli: 10000-11999
-- Dairy: 12000-13999
-- Spices & dried herbs: 14000-14999
-- Sauces, jars, tins & dry goods: 15000-17999
+- Cold section (chilled dairy): 12000-13999
+- Cooking ingredients (purée, spices, butter, oils): 14000-15999
+- Sauces, pickles & tins: 16000-17999
 - Bread & bakery: 18000-18999
-- Hot drinks: 19000-19099
-- Soft drinks: 19100-19299
-- Frozen: 19300-19999
-- Beer/wine/spirits: 20000-20999
-- Health & beauty: 21000-21999
-- Household: 22000-22999
-- Pet: 23000+
+- Eggs: 19000-19099
+- Pasta, rice, noodles & world foods: 19100-19999
+- Snacks & baking: 20000-20999
+- Hot drinks: 21000-21099
+- Soft drinks: 21100-21299
+- Frozen: 21300-21999
+- Beer/wine/spirits: 22000-22999
+- Health & beauty: 23000-23999
+- Household: 24000-24999
+- Pet: 25000+
 
 ## Within-section sub-ordering (the small touches)
 
 - Produce: keep tomatoes together, keep herbs together, berries near other fruit
-- Chilled: dairy together (cheese → cream → butter → yoghurt), then dips/olives
-- Cupboard: dried herbs/spices first, then oils/glazes/honey, then sauces, then dry goods
+- Chilled: cheese → milk/cream → yoghurt, then dips/olives in the deli block
+- Cooking ingredients: tomato purée first, then dried herbs/spices, then butter and oils
+- Ambient: sauces before pickles, pickles before tins, honey and jams last in that aisle
 - Bakery: savoury bread first, sweet bakery last
+- World foods: dry goods (pasta, rice, noodles) before sauces (soy, curry paste, coconut milk)
 - Drinks: hot → soft → frozen → sparkling → white → red → spirits → liqueurs
 - Existing items keep their relative order within a section unless it improves the flow
 
 ## Common gotchas
 
+- **Butter and eggs are ambient at Tesco, not in the cold section** - butter sits with the cooking fats and oils (section 6), eggs sit just after the bread aisle (section 9). The emoji reference groups them with dairy; that is an emoji map, not an aisle map.
 - "Crement" / "Crément" → Crémant (sparkling wine); a bare quantity with no bullet is usually a missed bullet - assume `1 ×`
 - "Pinot Noi" → Pinot Noir
-- Items the user calls "cupboard staples" go in the dry-goods section regardless of which aisle Tesco actually shelves them in
-- Caster sugar can appear in the dairy section of recipes (it is not dairy) - file under dry goods
+- Items the user calls "cupboard staples" go in the ambient sections (6, 7, 10, 11) regardless of which aisle Tesco actually shelves them in
+- Caster sugar can appear in the dairy section of recipes (it is not dairy) - file under snacks and baking
 - Shortbread typically lives in the bakery aisle at Tesco, not the biscuit aisle
+- Fresh garlic is Veg; garlic paste/purée is world foods
