@@ -29,6 +29,9 @@ api_get() {
 }
 
 # Helper: make POST request
+# Pass any caller-supplied text (names, descriptions, comments) with
+# --data-urlencode, not -d: curl sends -d raw, so an & truncates the value and
+# a + arrives as a space.
 api_post() {
     local endpoint="$1"
     shift
@@ -114,7 +117,8 @@ case "$1" in
         TITLE="$3"
         DESC="${4:-}"
 
-        RESPONSE=$(api_post "/cards" -d "idList=$LIST_ID" -d "name=$TITLE" -d "desc=$DESC")
+        RESPONSE=$(api_post "/cards" -d "idList=$LIST_ID" \
+            --data-urlencode "name=$TITLE" --data-urlencode "desc=$DESC")
 
         if echo "$RESPONSE" | jq -e '.id' > /dev/null 2>&1; then
             echo "Card created:"
@@ -138,7 +142,7 @@ case "$1" in
         FIELD="$3"
         VALUE="$4"
 
-        RESPONSE=$(api_put "/cards/$CARD_ID" -d "$FIELD=$VALUE")
+        RESPONSE=$(api_put "/cards/$CARD_ID" --data-urlencode "$FIELD=$VALUE")
 
         if echo "$RESPONSE" | jq -e '.id' > /dev/null 2>&1; then
             echo "Card updated:"
@@ -182,7 +186,7 @@ case "$1" in
         CARD_ID="$2"
         TEXT="$3"
 
-        RESPONSE=$(api_post "/cards/$CARD_ID/actions/comments" -d "text=$TEXT")
+        RESPONSE=$(api_post "/cards/$CARD_ID/actions/comments" --data-urlencode "text=$TEXT")
 
         if echo "$RESPONSE" | jq -e '.id' > /dev/null 2>&1; then
             echo "Comment added."
