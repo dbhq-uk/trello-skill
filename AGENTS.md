@@ -14,6 +14,7 @@ skills/trello/                      # core board/list/card management + setup
 skills/store-sort/                  # shopping list into store-aisle order (Tesco preset)
 skills/board-digest/                # board status snapshot
 skills/due-radar/                   # due/overdue across boards
+skills/life-manager/                # personal board setup, triage and coaching
 install.sh / install-codex.sh       # local symlink installers (Claude / Codex)
 ```
 
