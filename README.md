@@ -16,7 +16,7 @@ A free, open-source tool by [DBHQ](https://dbhq.uk)
 
 ---
 
-Four Trello skills that work together, all driven in plain language and powered by the Trello REST API.
+Five Trello skills that work together, all driven in plain language and powered by the Trello REST API.
 
 ## The pack
 
@@ -26,6 +26,7 @@ Four Trello skills that work together, all driven in plain language and powered 
 | 🛒 **store-sort** | Reorders a shopping list into a supermarket's aisle flow with a food-type emoji on every card. Any store via presets; ships a Tesco (UK) preset. |
 | 📰 **board-digest** | A plain-English status snapshot of a board - lists and cards, what's due or overdue, and what moved recently. Great for a standup or weekly review. |
 | ⏰ **due-radar** | What's due, overdue, or coming up across all your boards, sorted by date, overdue first. |
+| 🎯 **life-manager** | Sets up a personal board built to resist rotting, triages whatever you dump into it, and coaches you through what has stalled. Three modes - setup, triage, coach. |
 
 ## Install
 
@@ -36,7 +37,7 @@ Four Trello skills that work together, all driven in plain language and powered 
 /plugin install trello@dbhq
 ```
 
-Then talk to it: *"show my Trello boards"*, *"sort my shopping list into aisle order"*, *"give me a standup for the Roadmap board"*, *"what's due this week?"*.
+Then talk to it: *"show my Trello boards"*, *"sort my shopping list into aisle order"*, *"give me a standup for the Roadmap board"*, *"what's due this week?"*, *"set up my life board"*, *"help me get stuff done"*.
 
 ### Any agent (Cursor, Copilot, Windsurf, Gemini, Cline and more)
 
@@ -44,7 +45,7 @@ Then talk to it: *"show my Trello boards"*, *"sort my shopping list into aisle o
 npx skills add dbhq-uk/trello-skill
 ```
 
-The [skills.sh](https://skills.sh) CLI installs into whichever agent directories it finds, so this works outside Claude Code and Codex too. All four skills come in one command.
+The [skills.sh](https://skills.sh) CLI installs into whichever agent directories it finds, so this works outside Claude Code and Codex too. All five skills come in one command.
 
 ### Local install (Claude Code or Codex)
 
