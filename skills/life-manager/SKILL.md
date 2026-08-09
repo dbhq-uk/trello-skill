@@ -47,6 +47,10 @@ lists:                          # list name -> list id, as agreed at setup
   done: <id>
 labels:                         # label name -> label id
   Health: <id>
+label_order:                    # category order used when sorting a list.
+  - Now                         # highest priority first. Entities before
+  - Health                      # domains usually reads best, but it is the
+  - Finance                     # user's call - this is their ordering, not ours.
 caps:                           # optional. omit or null for no cap
   today: null
   in_progress: null
@@ -90,7 +94,8 @@ For a raw dump, an Inbox with cards in it, or "sort this out for me".
 4. **Break down anything vague.** A card that cannot be started in one sitting is not a task, it is a project - it needs a checklist or it will not move. See "Breaking things down" below.
 5. **Show a pre-flight plan** - every card, its destination, its label, and whether it needs action. Then stop.
 6. **Apply only on explicit approval.** Nothing moves before that. Never archive without being asked.
-7. **Verify**: no card left unlabelled, no card left in Inbox.
+7. **Order every list you touched by category** (see below). A list grouped into blocks is scannable; the same cards shuffled are noise.
+8. **Verify**: no card left unlabelled, no card left in Inbox.
 
 ## Mode 3 - coach
 
@@ -157,7 +162,27 @@ Credentials come from `~/.trello/config.json` (`api_key`, `token`).
 ${CLAUDE_SKILL_DIR}/scripts/life-board.sh config                 # show the resolved config path and contents
 ${CLAUDE_SKILL_DIR}/scripts/life-board.sh audit <board-id>       # unlabelled cards, stale cards, list sizes
 ${CLAUDE_SKILL_DIR}/scripts/life-board.sh stale <list-id> <days> # cards untouched for N days
+${CLAUDE_SKILL_DIR}/scripts/life-board.sh sort <list-id> "<order>" [--apply]
 ```
+
+## Ordering a list by category
+
+A list of thirty ungrouped cards cannot be read. The same thirty grouped into labelled blocks can be scanned in seconds, and the shape of the block tells the user something the cards alone do not - that eight of their open items are one client, or that a whole domain has quietly gone untouched.
+
+Order **by category first, then alphabetically within each category**. Position is priority: top of the list wins.
+
+The category order is the user's, from `label_order` in their config. Pass it in - never assume one, and never hardcode a set of label names into this skill.
+
+```bash
+# dry run first - always
+${CLAUDE_SKILL_DIR}/scripts/life-board.sh sort <list-id> "Now,Health,Finance,Home"
+# then write
+${CLAUDE_SKILL_DIR}/scripts/life-board.sh sort <list-id> "Now,Health,Finance,Home" --apply
+```
+
+Cards carrying a label that is not in the order sit after those that are; unlabelled cards sink to the bottom, where they stay visible as work still to do rather than hiding in the middle.
+
+Re-sort a list after any pass that changed labels or moved cards into it - otherwise the grouping silently goes stale and the user stops trusting it.
 
 ## Rules that hold in every mode
 
