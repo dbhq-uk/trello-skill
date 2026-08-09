@@ -100,10 +100,60 @@ cmd_audit() {
               else ($b | .[] | "  \(.)") end' | head -40
 }
 
+# Order a list by category, then alphabetically within each category.
+#
+# The category order is the user's, not ours - pass it in as a comma-separated
+# list of label names, taken from `label_order` in their config. A card is
+# ranked by its highest-priority label; cards carrying a label absent from the
+# order sit after those that don't, and unlabelled cards sink to the bottom
+# where they are visible as work still to do.
+#
+# Dry run by default. Writes only with --apply.
+cmd_sort() {
+    local list_id="$1" order_csv="$2" apply="${3:-}"
+    if [ -z "$list_id" ] || [ -z "$order_csv" ]; then
+        echo "Usage: life-board.sh sort <list-id> \"Label A,Label B,...\" [--apply]" >&2
+        exit 1
+    fi
+
+    local order_json
+    order_json=$(printf '%s' "$order_csv" \
+        | jq -R 'split(",") | map(gsub("^\\s+|\\s+$"; "")) | map(select(length > 0))')
+
+    local plan
+    plan=$(api_get "/lists/$list_id/cards" "fields=name,labels" | jq -r --argjson ord "$order_json" '
+        [ .[]
+          | { id, name,
+              lab: ([.labels[].name] | join(", ")),
+              cat: ( [.labels[].name]
+                     | map( . as $n | ($ord | index($n)) // 900 )
+                     | min // 999 ) } ]
+        | sort_by(.cat, (.name | ascii_downcase))
+        | to_entries[]
+        | "\(.value.id)\t\((.key + 1) * 1000)\t\(.value.lab)\t\(.value.name)"')
+
+    if [ -z "$plan" ]; then
+        echo "  (list is empty)"
+        return 0
+    fi
+
+    if [ "$apply" != "--apply" ]; then
+        echo "Proposed order (dry run - re-run with --apply to write):"
+        printf '%s\n' "$plan" | awk -F'\t' '{printf "  %-24s %s\n", ($3 == "" ? "(no label)" : $3), $4}'
+        return 0
+    fi
+
+    while IFS=$'\t' read -r id pos lab name; do
+        curl -s -o /dev/null -X PUT "$BASE_URL/cards/$id?key=$API_KEY&token=$TOKEN&pos=$pos"
+        printf '  %-24s %s\n' "${lab:-(no label)}" "$name"
+    done <<< "$plan"
+}
+
 case "${1:-}" in
     config) cmd_config ;;
     audit)  cmd_audit "${2:-}" ;;
     stale)  cmd_stale "${2:-}" "${3:-}" ;;
+    sort)   cmd_sort "${2:-}" "${3:-}" "${4:-}" ;;
     *)
         cat >&2 <<'USAGE'
 Usage: life-board.sh <command>
@@ -112,8 +162,13 @@ Usage: life-board.sh <command>
   audit <board-id>           List sizes, unlabelled cards, and cards that look
                              like undefined projects
   stale <list-id> [days]     Cards untouched for N days (default 14)
+  sort <list-id> "<order>" [--apply]
+                             Order a list by category, then alphabetically.
+                             <order> is a comma-separated list of label names,
+                             from the user's config. Dry run without --apply.
 
-Read-only. Credentials come from ~/.trello/config.json.
+Only `sort --apply` writes; everything else is read-only.
+Credentials come from ~/.trello/config.json.
 USAGE
         exit 1
         ;;

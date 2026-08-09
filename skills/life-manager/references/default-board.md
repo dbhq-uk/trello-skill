@@ -65,6 +65,21 @@ Guidance worth passing on:
 
 ## Ordering within a list
 
-Position is priority: top of the list wins. Group by category first, then order within the group, so a list reads as blocks rather than noise.
+Position is priority: top of the list wins.
+
+**Group by category first, then order alphabetically within the group.** A list of thirty ungrouped cards cannot be read - the eye has nowhere to land, so the user skims it, sees nothing, and closes the tab. The same thirty in labelled blocks can be scanned in seconds.
+
+Grouping also surfaces things no individual card does: that eight open items belong to one client, that a domain has gone untouched for months, that "miscellaneous" has quietly become the largest block on the board. Those are the observations a coaching pass is built on, and they are invisible in an unsorted list.
+
+The category order belongs to the user and lives in `label_order` in their config. Entities before domains usually reads best for someone who works for themselves, but it is their call, not the skill's.
+
+```bash
+${CLAUDE_SKILL_DIR}/scripts/life-board.sh sort <list-id> "<comma-separated label order>"
+${CLAUDE_SKILL_DIR}/scripts/life-board.sh sort <list-id> "<comma-separated label order>" --apply
+```
+
+Unlabelled cards sink to the bottom deliberately. They are not finished work, they are undone categorisation, and burying them mid-list hides that.
+
+Re-sort after any pass that changed labels or moved cards in. Grouping that has gone stale is worse than none - it looks authoritative and is not.
 
 Due dates are for **real external deadlines only** - a court date, a filing deadline, a booked event. Inventing dates to force urgency breeds alarm fatigue, and once a user starts ignoring red dates they ignore the real ones too.
