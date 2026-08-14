@@ -369,6 +369,79 @@ case "$1" in
         fi
         ;;
 
+    label-add)
+        # Apply an existing board label to a card. Label IDs come from
+        # `trello-boards.sh labels <board-id>`.
+        if [ -z "$2" ] || [ -z "$3" ]; then
+            echo "Usage: trello-cards.sh label-add <card-id> <label-id>"
+            exit 1
+        fi
+
+        RESPONSE=$(api_post "/cards/$2/idLabels" --data-urlencode "value=$3")
+
+        if echo "$RESPONSE" | jq -e 'type == "array" or .id' > /dev/null 2>&1; then
+            echo "Label applied."
+        else
+            echo "Error:"
+            echo "$RESPONSE" | jq -r '.message // .'
+            exit 1
+        fi
+        ;;
+
+    label-remove)
+        # Remove a label from a card (the label itself survives on the board)
+        if [ -z "$2" ] || [ -z "$3" ]; then
+            echo "Usage: trello-cards.sh label-remove <card-id> <label-id>"
+            exit 1
+        fi
+
+        RESPONSE=$(api_delete "/cards/$2/idLabels/$3")
+
+        if echo "$RESPONSE" | jq -e '.message' > /dev/null 2>&1; then
+            echo "Error:"
+            echo "$RESPONSE" | jq -r '.message'
+            exit 1
+        fi
+        echo "Label removed."
+        ;;
+
+    checklist-add)
+        # Create a checklist on a card and print its id, so the id can be fed
+        # straight into checkitem-add without a second lookup.
+        if [ -z "$2" ] || [ -z "$3" ]; then
+            echo "Usage: trello-cards.sh checklist-add <card-id> <name>"
+            exit 1
+        fi
+
+        RESPONSE=$(api_post "/cards/$2/checklists" --data-urlencode "name=$3")
+
+        if echo "$RESPONSE" | jq -e '.id' > /dev/null 2>&1; then
+            echo "$RESPONSE" | jq -r '.id'
+        else
+            echo "Error:"
+            echo "$RESPONSE" | jq -r '.message // .'
+            exit 1
+        fi
+        ;;
+
+    checkitem-add)
+        # Add an item to an existing checklist
+        if [ -z "$2" ] || [ -z "$3" ]; then
+            echo "Usage: trello-cards.sh checkitem-add <checklist-id> <name>"
+            exit 1
+        fi
+
+        RESPONSE=$(api_post "/checklists/$2/checkItems" --data-urlencode "name=$3")
+
+        if echo "$RESPONSE" | jq -e '.id' > /dev/null 2>&1; then
+            echo "Added: $3"
+        else
+            echo "Error:"
+            echo "$RESPONSE" | jq -r '.message // .'
+            exit 1
+        fi
+        ;;
+
     members)
         # Show members assigned to a card
         if [ -z "$2" ]; then
@@ -425,6 +498,14 @@ case "$1" in
         echo "  create <list-id> <title> [desc]   Create a new card"
         echo "  update <card-id> <field> <value>  Update card (name, desc, due)"
         echo "  move <card-id> <list-id>          Move card to another list"
+        echo
+        echo "Labels & Checklists:"
+        echo "  labels <card-id>                    Show labels on a card"
+        echo "  label-add <card-id> <label-id>      Apply a board label"
+        echo "  label-remove <card-id> <label-id>   Remove a label"
+        echo "  checklist <card-id>                 Show checklists"
+        echo "  checklist-add <card-id> <name>      Create a checklist, prints its id"
+        echo "  checkitem-add <checklist-id> <name> Add an item to a checklist"
         echo
         echo "Positioning:"
         echo "  top <card-id>               Move card to top of list"

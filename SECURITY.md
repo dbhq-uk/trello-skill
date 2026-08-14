@@ -45,14 +45,19 @@ if that breadth is a concern.
 - Installs into `~/.claude/skills/trello` or `~/.codex`, depending on the agent
 - Reads and writes `~/.trello/config.json` only
 
-## Known hardening gap
+## Credential write is umask-protected
 
-`trello-setup.sh` writes `config.json` and then sets it to `600`. Between those
-two operations the file exists at the default umask, typically `644`. On a
-single-user machine this is immaterial; on a shared host it is a brief window in
-which another local user could read the token. Setting `umask 077` before the
-write would close it, and `~/.trello` itself is not set to `700` as
-`~/.outlook-graph` is.
+`trello-setup.sh` sets `umask 077` before writing `config.json` and restores the
+previous umask afterwards, so the file never exists - not even briefly - at the
+default `644`. It is then `chmod 600`, and `~/.trello` is set to `700`.
 
-Documented rather than quietly fixed, because you should know it before deciding
-whether this skill belongs on a shared machine.
+An earlier version chmod'd only after the write, leaving a short window in which
+another local user on a shared host could read the token. That window is closed.
+
+## Note on automated scanners
+
+Directory scanners flag the lines of this document and of `SKILL.md` that name
+`~/.trello/config.json` as "sensitive file access". Those are sentences
+describing where the credential lives, not code that reads someone else's.
+Documenting the location is deliberate: a credential store you cannot find is
+harder to audit, not safer. The path stays.
