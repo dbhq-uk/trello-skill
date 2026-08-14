@@ -68,6 +68,12 @@ fi
 # Save configuration
 mkdir -p "$CONFIG_DIR"
 
+# umask first: the file must never exist, even briefly, at the default 644.
+# chmod after the write would leave a window in which another local user
+# could read the token.
+OLD_UMASK=$(umask)
+umask 077
+
 cat > "$CONFIG_FILE" << EOF
 {
   "api_key": "$API_KEY",
@@ -75,7 +81,9 @@ cat > "$CONFIG_FILE" << EOF
 }
 EOF
 
+umask "$OLD_UMASK"
 chmod 600 "$CONFIG_FILE"
+chmod 700 "$CONFIG_DIR"
 
 echo
 echo "Configuration saved to: $CONFIG_FILE"

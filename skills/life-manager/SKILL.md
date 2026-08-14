@@ -119,10 +119,8 @@ When a card has not moved and has no checklist:
 - Make the first chip small enough to be embarrassing
 
 ```bash
-CL=$(curl -s -X POST "https://api.trello.com/1/cards/<card-id>/checklists?key=$KEY&token=$TOKEN" \
-     --data-urlencode "name=Chips" | jq -r .id)
-curl -s -X POST "https://api.trello.com/1/checklists/$CL/checkItems?key=$KEY&token=$TOKEN" \
-     --data-urlencode "name=<first small step>"
+CL=$(trello-cards.sh checklist-add <card-id> "Chips")
+trello-cards.sh checkitem-add "$CL" "<first small step>"
 ```
 
 ### Long-burn cards
@@ -148,13 +146,15 @@ ${CLAUDE_SKILL_DIR}/../trello/scripts/trello-cards.sh move <card-id> <list-id>
 ${CLAUDE_SKILL_DIR}/../trello/scripts/trello-cards.sh position <card-id> <pos>
 ```
 
-Labels are read-only in `trello-cards.sh`. To apply one, call the API directly:
+Apply a label with `trello-cards.sh`. Label IDs come from
+`trello-boards.sh labels <board-id>`:
 
 ```bash
-curl -s -X POST "https://api.trello.com/1/cards/<card-id>/idLabels?value=<label-id>&key=$KEY&token=$TOKEN"
+trello-cards.sh label-add <card-id> <label-id>
 ```
 
-Credentials come from `~/.trello/config.json` (`api_key`, `token`).
+The script reads credentials from the config itself, so no key or token ever
+reaches the command line, the shell history, or `ps` output.
 
 ## Helper script
 
