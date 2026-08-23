@@ -100,37 +100,58 @@ cmd_audit() {
               else ($b | .[] | "  \(.)") end' | head -40
 }
 
-# Order a list by category, then alphabetically within each category.
+# Order a list by category, then alphabetically within each category, and
+# optionally stamp each card with its category's emoji.
 #
 # The category order is the user's, not ours - pass it in as a comma-separated
-# list of label names, taken from `label_order` in their config. A card is
-# ranked by its highest-priority label; cards carrying a label absent from the
-# order sit after those that don't, and unlabelled cards sink to the bottom
-# where they are visible as work still to do.
+# list, taken from `label_order` (and `label_emoji`) in their config. Each entry
+# is either "Label" or "Label:emoji". A card is ranked by its highest-priority
+# label; cards carrying a label absent from the order sit after those that
+# don't, and unlabelled cards sink to the bottom where they are visible as work
+# still to do.
+#
+# The emoji is a prefix on the card title, so the category is readable on the
+# board itself rather than only in a label filter. Any emoji already leading the
+# title is stripped first, so re-running never doubles up and a recategorised
+# card picks up its new emoji. Currency symbols and brackets are deliberately
+# left alone - "£500 to pay" keeps its £.
 #
 # Dry run by default. Writes only with --apply.
 cmd_sort() {
     local list_id="$1" order_csv="$2" apply="${3:-}"
     if [ -z "$list_id" ] || [ -z "$order_csv" ]; then
-        echo "Usage: life-board.sh sort <list-id> \"Label A,Label B,...\" [--apply]" >&2
+        echo "Usage: life-board.sh sort <list-id> \"Label[:emoji],Label[:emoji],...\" [--apply]" >&2
         exit 1
     fi
 
+    # "Now:🔥,Health:❤️" -> [{"n":"Now","e":"🔥"},{"n":"Health","e":"❤️"}]
     local order_json
-    order_json=$(printf '%s' "$order_csv" \
-        | jq -R 'split(",") | map(gsub("^\\s+|\\s+$"; "")) | map(select(length > 0))')
+    order_json=$(printf '%s' "$order_csv" | jq -R '
+        split(",")
+        | map(gsub("^\\s+|\\s+$"; ""))
+        | map(select(length > 0))
+        | map( (index(":")) as $i
+               | if $i == null
+                 then { n: ., e: "" }
+                 else { n: (.[0:$i] | gsub("^\\s+|\\s+$"; "")),
+                        e: (.[$i+1:] | gsub("^\\s+|\\s+$"; "")) }
+                 end )')
 
     local plan
     plan=$(api_get "/lists/$list_id/cards" "fields=name,labels" | jq -r --argjson ord "$order_json" '
-        [ .[]
-          | { id, name,
-              lab: ([.labels[].name] | join(", ")),
-              cat: ( [.labels[].name]
-                     | map( . as $n | ($ord | index($n)) // 900 )
-                     | min // 999 ) } ]
-        | sort_by(.cat, (.name | ascii_downcase))
+        ($ord | map(.n)) as $names
+        | [ .[]
+            | ( [.labels[].name] | map(. as $n | $names | index($n)) | map(select(. != null)) | min ) as $rank
+            | { id,
+                old: .name,
+                lab: ([.labels[].name] | join(", ")),
+                cat: ( $rank // (if (.labels | length) > 0 then 900 else 999 end) ),
+                emo: ( if $rank == null then "" else ($ord[$rank].e) end ),
+                bare: (.name | sub("^[\\p{So}\\p{Sk}\\p{Cf}\\p{Mn}\\s]+"; "")) } ]
+        | map(. + { new: (if .emo == "" then .bare else "\(.emo) \(.bare)" end) })
+        | sort_by(.cat, (.bare | ascii_downcase))
         | to_entries[]
-        | "\(.value.id)\t\((.key + 1) * 1000)\t\(.value.lab)\t\(.value.name)"')
+        | "\(.value.id)\t\((.key + 1) * 1000)\t\(.value.lab)\t\(.value.new)\t\(.value.old)"')
 
     if [ -z "$plan" ]; then
         echo "  (list is empty)"
@@ -139,13 +160,20 @@ cmd_sort() {
 
     if [ "$apply" != "--apply" ]; then
         echo "Proposed order (dry run - re-run with --apply to write):"
-        printf '%s\n' "$plan" | awk -F'\t' '{printf "  %-24s %s\n", ($3 == "" ? "(no label)" : $3), $4}'
+        printf '%s\n' "$plan" | awk -F'\t' '{
+            printf "  %-22s %s%s\n", ($3 == "" ? "(no label)" : $3), $4, ($4 == $5 ? "" : "   [was: " $5 "]")
+        }'
         return 0
     fi
 
-    while IFS=$'\t' read -r id pos lab name; do
-        curl -s -o /dev/null -X PUT "$BASE_URL/cards/$id?key=$API_KEY&token=$TOKEN&pos=$pos"
-        printf '  %-24s %s\n' "${lab:-(no label)}" "$name"
+    while IFS=$'\t' read -r id pos lab new old; do
+        if [ "$new" != "$old" ]; then
+            curl -s -o /dev/null -X PUT "$BASE_URL/cards/$id?key=$API_KEY&token=$TOKEN&pos=$pos" \
+                --data-urlencode "name=$new"
+        else
+            curl -s -o /dev/null -X PUT "$BASE_URL/cards/$id?key=$API_KEY&token=$TOKEN&pos=$pos"
+        fi
+        printf '  %-22s %s\n' "${lab:-(no label)}" "$new"
     done <<< "$plan"
 }
 
@@ -163,8 +191,9 @@ Usage: life-board.sh <command>
                              like undefined projects
   stale <list-id> [days]     Cards untouched for N days (default 14)
   sort <list-id> "<order>" [--apply]
-                             Order a list by category, then alphabetically.
-                             <order> is a comma-separated list of label names,
+                             Order a list by category, then alphabetically, and
+                             stamp each card with its category emoji.
+                             <order> is comma-separated "Label[:emoji]" entries,
                              from the user's config. Dry run without --apply.
 
 Only `sort --apply` writes; everything else is read-only.

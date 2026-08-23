@@ -51,6 +51,10 @@ label_order:                    # category order used when sorting a list.
   - Now                         # highest priority first. Entities before
   - Health                      # domains usually reads best, but it is the
   - Finance                     # user's call - this is their ordering, not ours.
+label_emoji:                    # optional. stamped on the card title by `sort`,
+  Now: 🔥                       # so the category is readable on the board
+  Health: ❤️                    # itself, not only through a label filter.
+  Finance: 💷                   # omit a label to leave its cards unstamped.
 caps:                           # optional. omit or null for no cap
   today: null
   in_progress: null
@@ -175,12 +179,22 @@ The category order is the user's, from `label_order` in their config. Pass it in
 
 ```bash
 # dry run first - always
-${CLAUDE_SKILL_DIR}/scripts/life-board.sh sort <list-id> "Now,Health,Finance,Home"
+${CLAUDE_SKILL_DIR}/scripts/life-board.sh sort <list-id> "Now:🔥,Health:❤️,Finance:💷,Home:🏠"
 # then write
-${CLAUDE_SKILL_DIR}/scripts/life-board.sh sort <list-id> "Now,Health,Finance,Home" --apply
+${CLAUDE_SKILL_DIR}/scripts/life-board.sh sort <list-id> "Now:🔥,Health:❤️,Finance:💷,Home:🏠" --apply
 ```
 
+Each entry is `Label` or `Label:emoji`, composed from `label_order` and `label_emoji` in their config. An entry with no emoji leaves its cards' titles alone.
+
 Cards carrying a label that is not in the order sit after those that are; unlabelled cards sink to the bottom, where they stay visible as work still to do rather than hiding in the middle.
+
+### Why stamp the emoji on the title
+
+A label colour is only legible once you already know the scheme, and on a phone it is a thin stripe. An emoji in the title survives every view, every export, and every search - the category travels with the card instead of living in the board's metadata.
+
+The stamp is idempotent: any emoji already leading a title is stripped before the new one goes on, so re-running never doubles up and a recategorised card picks up its new emoji automatically. Only titles that actually change are written. Currency symbols and brackets are left alone - `£500 to pay` keeps its `£`.
+
+Do not invent an emoji set. Ask the user, or offer suggestions they can veto - an emoji that means the wrong thing to them is worse than none, and they will be looking at it every day.
 
 Re-sort a list after any pass that changed labels or moved cards into it - otherwise the grouping silently goes stale and the user stops trusting it.
 
