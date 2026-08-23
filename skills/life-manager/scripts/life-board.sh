@@ -151,7 +151,7 @@ cmd_sort() {
         | map(. + { new: (if .emo == "" then .bare else "\(.emo) \(.bare)" end) })
         | sort_by(.cat, (.bare | ascii_downcase))
         | to_entries[]
-        | "\(.value.id)\t\((.key + 1) * 1000)\t\(.value.lab)\t\(.value.new)\t\(.value.old)"')
+        | "\(.value.id)\t\((.key + 1) * 1000)\t\(if .value.lab == "" then "-" else .value.lab end)\t\(.value.new)\t\(.value.old)"')
 
     if [ -z "$plan" ]; then
         echo "  (list is empty)"
@@ -161,7 +161,7 @@ cmd_sort() {
     if [ "$apply" != "--apply" ]; then
         echo "Proposed order (dry run - re-run with --apply to write):"
         printf '%s\n' "$plan" | awk -F'\t' '{
-            printf "  %-22s %s%s\n", ($3 == "" ? "(no label)" : $3), $4, ($4 == $5 ? "" : "   [was: " $5 "]")
+            printf "  %-22s %s%s\n", ($3 == "-" ? "(no label)" : $3), $4, ($4 == $5 ? "" : "   [was: " $5 "]")
         }'
         return 0
     fi
@@ -173,7 +173,7 @@ cmd_sort() {
         else
             curl -s -o /dev/null -X PUT "$BASE_URL/cards/$id?key=$API_KEY&token=$TOKEN&pos=$pos"
         fi
-        printf '  %-22s %s\n' "${lab:-(no label)}" "$new"
+        printf '  %-22s %s\n' "$([ "$lab" = "-" ] && echo "(no label)" || echo "$lab")" "$new"
     done <<< "$plan"
 }
 
