@@ -9,7 +9,7 @@ A cross-board triage view: every card with a due date, sorted by when it is due,
 
 ## Prerequisites
 
-- Credentials configured in `~/.trello/` (run the trello skill's setup if not done)
+- Credentials configured in `~/.dbhq/trello/` (run the trello skill's setup if not done)
 - `jq`, `curl` installed
 
 ## Usage

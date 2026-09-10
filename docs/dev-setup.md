@@ -31,7 +31,7 @@ Complete the setup the installer offers, or run it directly:
 ~/.claude/skills/trello/scripts/trello-setup.sh
 ```
 
-Create a free Trello Power-Up at https://trello.com/power-ups/admin to generate an API key and token. They're stored in `~/.trello/config.json` (permissions `600`), never in the repo. If you've already set this up on another machine, you can copy `~/.trello/` across instead.
+Create a free Trello Power-Up at https://trello.com/power-ups/admin to generate an API key and token. They're stored in `~/.dbhq/trello/config.json` (permissions `600`), never in the repo. If you've already set this up on another machine, you can copy `~/.dbhq/trello/` across instead.
 
 ## 4. Verify
 

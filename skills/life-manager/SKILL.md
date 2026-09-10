@@ -30,7 +30,7 @@ Personal settings live in a YAML file the user owns. Look for it in this order a
 1. `$LIFE_MANAGER_CONFIG`
 2. `./life-manager.yaml`
 3. `./system/life-manager.yaml`
-4. `~/.trello/life-manager.yaml`
+4. `~/.dbhq/trello/life-manager.yaml`
 
 If none exists, you are in **setup** mode - offer to create one.
 
@@ -68,7 +68,7 @@ coaching:
   max_findings_per_run: 3
 ```
 
-Write the config with `--data-urlencode`-safe values only, and never commit credentials to it - Trello auth stays in `~/.trello/config.json`.
+Write the config with `--data-urlencode`-safe values only, and never commit credentials to it - Trello auth stays in `~/.dbhq/trello/config.json`.
 
 ## Mode 1 - setup
 

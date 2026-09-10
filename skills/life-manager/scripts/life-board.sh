@@ -7,7 +7,17 @@
 
 set -e
 
-CONFIG_FILE="$HOME/.trello/config.json"
+CONFIG_DIR="$HOME/.dbhq/trello"
+CONFIG_FILE="$CONFIG_DIR/config.json"
+
+# One-time migration: settings used to live at ~/.trello
+if [ ! -e "$CONFIG_DIR" ] && [ -d "$HOME/.trello" ]; then
+    mkdir -p "$HOME/.dbhq"
+    chmod 700 "$HOME/.dbhq"
+    mv "$HOME/.trello" "$CONFIG_DIR"
+    chmod 700 "$CONFIG_DIR"
+fi
+
 if [ ! -f "$CONFIG_FILE" ]; then
     echo "Error: Config not found. Run trello-setup.sh first." >&2
     exit 1
@@ -40,7 +50,7 @@ resolve_config() {
         "$LIFE_MANAGER_CONFIG"
         "./life-manager.yaml"
         "./system/life-manager.yaml"
-        "$HOME/.trello/life-manager.yaml"
+        "$HOME/.dbhq/trello/life-manager.yaml"
     )
     local c
     for c in "${candidates[@]}"; do
@@ -53,7 +63,7 @@ cmd_config() {
     local path
     if ! path=$(resolve_config); then
         echo "No config found. Looked for:" >&2
-        echo "  \$LIFE_MANAGER_CONFIG, ./life-manager.yaml, ./system/life-manager.yaml, ~/.trello/life-manager.yaml" >&2
+        echo "  \$LIFE_MANAGER_CONFIG, ./life-manager.yaml, ./system/life-manager.yaml, ~/.dbhq/trello/life-manager.yaml" >&2
         echo "" >&2
         echo "This is setup mode - offer to create one." >&2
         exit 1
@@ -197,7 +207,7 @@ Usage: life-board.sh <command>
                              from the user's config. Dry run without --apply.
 
 Only `sort --apply` writes; everything else is read-only.
-Credentials come from ~/.trello/config.json.
+Credentials come from ~/.dbhq/trello/config.json.
 USAGE
         exit 1
         ;;

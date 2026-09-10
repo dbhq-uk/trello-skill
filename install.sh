@@ -49,7 +49,7 @@ echo "Installed as directory symlinks - all edits (scripts and SKILL.md) are liv
 echo
 
 # --- Setup / credentials ---
-if [ -f "$HOME/.trello/config.json" ]; then
+if [ -f "$HOME/.dbhq/trello/config.json" ] || [ -f "$HOME/.trello/config.json" ]; then
   echo "Existing Trello credentials found. Re-run setup any time with:"
   echo "  $SKILLS_ROOT/trello/scripts/trello-setup.sh"
 else

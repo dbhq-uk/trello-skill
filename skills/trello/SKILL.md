@@ -18,7 +18,7 @@ Manage Trello boards, lists, and cards via the Trello REST API.
 
 ## Prerequisites
 
-- Credentials configured in `~/.trello/` (run setup if not done)
+- Credentials configured in `~/.dbhq/trello/` (run setup if not done)
 - jq, curl installed
 
 ## Setup

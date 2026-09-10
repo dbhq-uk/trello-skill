@@ -9,7 +9,7 @@ Turns a Trello board into a readable status update: what is in each list, what i
 
 ## Prerequisites
 
-- Credentials configured in `~/.trello/` (run the trello skill's setup if not done)
+- Credentials configured in `~/.dbhq/trello/` (run the trello skill's setup if not done)
 - `jq`, `curl` installed
 
 ## Usage

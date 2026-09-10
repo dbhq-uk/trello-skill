@@ -41,7 +41,9 @@ scripts/trello-setup.sh
 
 Enter your API key and token when prompted. The script will:
 - Validate your credentials
-- Save them to `~/.trello/config.json`
+- Save them to `~/.dbhq/trello/config.json`
+
+Upgrading from an older install? Settings used to live at `~/.trello`; the scripts move that directory to `~/.dbhq/trello` automatically on first run.
 
 ## Step 5: Verify
 
@@ -56,20 +58,21 @@ You should see a list of your Trello boards.
 If you prefer to configure manually:
 
 ```bash
-mkdir -p ~/.trello
-cat > ~/.trello/config.json << 'EOF'
+mkdir -p ~/.dbhq/trello
+chmod 700 ~/.dbhq ~/.dbhq/trello
+cat > ~/.dbhq/trello/config.json << 'EOF'
 {
   "api_key": "YOUR_API_KEY_HERE",
   "token": "YOUR_TOKEN_HERE"
 }
 EOF
-chmod 600 ~/.trello/config.json
+chmod 600 ~/.dbhq/trello/config.json
 ```
 
 ## Security Notes
 
 - Your API key and token provide **full access** to your Trello account
-- Keep `~/.trello/config.json` secure (permissions should be 600)
+- Keep `~/.dbhq/trello/config.json` secure (permissions should be 600)
 - Never commit credentials to version control
 - The token works across all workspaces you have access to
 
@@ -101,5 +104,5 @@ To revoke your token:
 
 To completely remove the skill's access:
 ```bash
-rm -rf ~/.trello
+rm -rf ~/.dbhq/trello
 ```

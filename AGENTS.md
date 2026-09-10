@@ -22,12 +22,12 @@ Each skill is `skills/<name>/SKILL.md` plus optional `scripts/` and `references/
 
 ## Conventions
 
-- Scripts are self-contained: they read credentials from `~/.trello/config.json` and have no bundled-path dependencies, so they run from any location.
+- Scripts are self-contained: they read credentials from `~/.dbhq/trello/config.json` and have no bundled-path dependencies, so they run from any location.
 - The `trello` core skill owns setup and the shared API scripts. Other skills (e.g. `store-sort`) call the core scripts by their `${CLAUDE_SKILL_DIR}/../trello/scripts/...` path - `${CLAUDE_SKILL_DIR}` is the calling skill's own directory, so `../trello` is the sibling core skill (all skills sit side by side under the plugin / `~/.claude/skills/`).
 - SKILL.md references scripts via `${CLAUDE_SKILL_DIR}` (the skill's own directory), which Claude Code substitutes for personal, project, and plugin installs alike. `install.sh` therefore symlinks the whole skill directory into `~/.claude/skills/` (no rewrite). `install-codex.sh` still rewrites the variable to the install path, since Codex does not substitute it.
 - Shell scripts use `set -e`; errors go to stderr, structured output to stdout.
 - Any caller-supplied text sent to the API (card names, descriptions, comments) goes through `curl --data-urlencode`, never plain `-d` - `-d` sends the body raw, so an `&` silently truncates the value and a `+` arrives as a space.
-- No secrets in the repo - credentials live under `~/.trello/`.
+- No secrets in the repo - credentials live under `~/.dbhq/trello/`.
 - House style: British English, plain hyphens.
 
 ## Adding to the pack

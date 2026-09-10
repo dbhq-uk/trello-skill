@@ -22,7 +22,7 @@ between your machine and Trello directly.
 An API key and token, which you create yourself at Trello and paste into
 `trello-setup.sh`.
 
-- Stored at `~/.trello/config.json`
+- Stored at `~/.dbhq/trello/config.json`
 - The file is set to `600` (owner read/write only) immediately after it is
   written
 - They are never transmitted anywhere except `api.trello.com`, as query
@@ -30,7 +30,7 @@ An API key and token, which you create yourself at Trello and paste into
 
 **Revoking access:** the token is yours, issued by Trello. Revoke it at
 <https://trello.com/my/account> under connected applications, and this skill
-loses access immediately. Deleting `~/.trello/config.json` removes the local
+loses access immediately. Deleting `~/.dbhq/trello/config.json` removes the local
 copy but does not revoke the token - do both.
 
 ### Scope of access
@@ -43,13 +43,13 @@ if that breadth is a concern.
 ### On disk
 
 - Installs into `~/.claude/skills/trello` or `~/.codex`, depending on the agent
-- Reads and writes `~/.trello/config.json` only
+- Reads and writes `~/.dbhq/trello/config.json` only
 
 ## Credential write is umask-protected
 
 `trello-setup.sh` sets `umask 077` before writing `config.json` and restores the
 previous umask afterwards, so the file never exists - not even briefly - at the
-default `644`. It is then `chmod 600`, and `~/.trello` is set to `700`.
+default `644`. It is then `chmod 600`, and `~/.dbhq/trello` is set to `700`.
 
 An earlier version chmod'd only after the write, leaving a short window in which
 another local user on a shared host could read the token. That window is closed.
@@ -57,7 +57,7 @@ another local user on a shared host could read the token. That window is closed.
 ## Note on automated scanners
 
 Directory scanners flag the lines of this document and of `SKILL.md` that name
-`~/.trello/config.json` as "sensitive file access". Those are sentences
+`~/.dbhq/trello/config.json` as "sensitive file access". Those are sentences
 describing where the credential lives, not code that reads someone else's.
 Documenting the location is deliberate: a credential store you cannot find is
 harder to audit, not safer. The path stays.

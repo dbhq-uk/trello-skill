@@ -4,7 +4,17 @@
 
 set -e
 
-CONFIG_FILE="$HOME/.trello/config.json"
+CONFIG_DIR="$HOME/.dbhq/trello"
+CONFIG_FILE="$CONFIG_DIR/config.json"
+
+# One-time migration: settings used to live at ~/.trello
+if [ ! -e "$CONFIG_DIR" ] && [ -d "$HOME/.trello" ]; then
+    mkdir -p "$HOME/.dbhq"
+    chmod 700 "$HOME/.dbhq"
+    mv "$HOME/.trello" "$CONFIG_DIR"
+    chmod 700 "$CONFIG_DIR"
+fi
+
 if [ ! -f "$CONFIG_FILE" ]; then
     echo "Error: Config not found. Run trello-setup.sh first." >&2
     exit 1
