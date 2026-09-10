@@ -91,7 +91,7 @@ EOF
 
 umask "$OLD_UMASK"
 chmod 600 "$CONFIG_FILE"
-chmod 700 "$CONFIG_DIR"
+chmod 700 "$HOME/.dbhq" "$CONFIG_DIR"
 
 echo
 echo "Configuration saved to: $CONFIG_FILE"
