@@ -1,8 +1,8 @@
 <div align="center">
 
-<img src="assets/logo.svg" alt="Trello skill pack for Claude Code, by DBHQ" width="350">
+<img src="assets/logo.svg" alt="trello skill pack for Claude Code, by DBHQ" width="350">
 
-# Trello for Claude Code
+# trello
 
 **A pack of Trello skills for Claude Code and Codex - manage boards, sort your shopping, and stay on top of what's due, in plain language**
 
