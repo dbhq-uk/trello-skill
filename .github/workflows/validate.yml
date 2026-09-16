@@ -4,11 +4,17 @@ on:
   push:
   pull_request:
 
+# The default for every job below. A job that needs more declares it itself;
+# an explicit floor here means a new job cannot silently inherit an org
+# setting somebody widened.
+permissions:
+  contents: read
+
 jobs:
   validate:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
 
       - name: Validate plugin manifest is valid JSON
         run: jq empty .claude-plugin/plugin.json
