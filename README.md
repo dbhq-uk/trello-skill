@@ -1,6 +1,6 @@
 <div align="center">
 
-<img src="assets/logo.svg" alt="trello skill pack for Claude Code, by DBHQ" width="350">
+<img src="assets/logo.svg" alt="trello skill pack for Claude Code, by DBHQ" width="560">
 
 # trello
 
@@ -10,7 +10,7 @@
 [![Claude Code](https://img.shields.io/badge/Claude_Code-Plugin-blueviolet)](https://code.claude.com/docs/en/plugins)
 [![Platform](https://img.shields.io/badge/Platform-Linux%20%7C%20macOS%20%7C%20WSL-lightgrey)]()
 
-A free, open-source tool by [DBHQ](https://dbhq.uk)
+A free, open-source tool by [DBHQ](https://dbhq.uk) - documented at [skills.dbhq.uk](https://skills.dbhq.uk/trello/)
 
 </div>
 
@@ -37,15 +37,14 @@ Five Trello skills that work together, all driven in plain language and powered 
 /plugin install trello@dbhq
 ```
 
-Then talk to it: *"show my Trello boards"*, *"sort my shopping list into aisle order"*, *"give me a standup for the Roadmap board"*, *"what's due this week?"*, *"set up my life board"*, *"help me get stuff done"*.
-
 ### Any agent (Cursor, Copilot, Windsurf, Gemini, Cline and more)
 
 ```bash
 npx skills add dbhq-uk/trello-skill
 ```
 
-The [skills.sh](https://skills.sh) CLI installs into whichever agent directories it finds, so this works outside Claude Code and Codex too. All five skills come in one command.
+The [skills.sh](https://skills.sh) CLI installs into whichever agent directories
+it finds, so this works outside Claude Code and Codex too.
 
 ### Local install (Claude Code or Codex)
 
@@ -55,6 +54,12 @@ cd trello-skill
 ./install.sh          # Claude Code: symlinks into ~/.claude/skills (edits are live)
 ./install-codex.sh    # Codex: installs into ~/.codex/skills
 ```
+
+[`install.sh`](install.sh) and [`install-codex.sh`](install-codex.sh) are the
+same install two ways: Claude Code substitutes `${CLAUDE_SKILL_DIR}`, so the
+whole skill directory is symlinked untouched, while Codex does not, so its
+`SKILL.md` is rewritten at install time. Re-run the Codex one after editing
+`SKILL.md`.
 
 ## Setup
 
@@ -81,6 +86,29 @@ Want to hack on the pack, add a skill, or run it from source with live edits? Se
 ## Credentials and privacy
 
 No secrets live in this repository. Your Trello key and token are stored locally under `~/.dbhq/trello/` and used only to talk to the Trello API directly from your machine. The token grants full access to your account - keep it secret.
+
+## Also from DBHQ
+
+Fifteen free agent skills, all of them installable from the same marketplace and
+all documented at **[skills.dbhq.uk](https://skills.dbhq.uk)**.
+
+| Skill | What it does |
+|---|---|
+| [outlook](https://skills.dbhq.uk/outlook/) | Microsoft 365 mail and calendar, from the terminal |
+| [legwork](https://skills.dbhq.uk/legwork/) | Research that settles a decision, and says when it cannot |
+| [dovetail](https://skills.dbhq.uk/dovetail/) | Checks whether your repository still agrees with itself |
+| [verve](https://skills.dbhq.uk/verve/) | Strips AI tells from prose and puts a voice back |
+| [vela](https://skills.dbhq.uk/vela/) | Compiler-exact code search for .NET |
+| [garmin](https://skills.dbhq.uk/garmin/) | Your Garmin data, answered in the terminal |
+| [imager](https://skills.dbhq.uk/imager/) | Images from GPT Image 2, costed before it spends |
+| [gitview](https://skills.dbhq.uk/gitview/) | Which branches are finished, and safe to delete |
+| [atlassian](https://skills.dbhq.uk/atlassian/) | Jira issues and Confluence pages |
+| [pennyblack](https://skills.dbhq.uk/pennyblack/) | A physical letter, posted from the terminal |
+| [buildwork](https://skills.dbhq.uk/buildwork/) | Your open issues, run as parallel agents |
+| [deskwork](https://skills.dbhq.uk/deskwork/) | What an agent noticed, tracked as real work |
+| [groupwork](https://skills.dbhq.uk/groupwork/) | A second agent on the work, adversary or partner |
+
+Plus [heliograph](https://skills.dbhq.uk/heliograph/), for a machine you cannot log into.
 
 ## License
 

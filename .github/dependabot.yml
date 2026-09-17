@@ -1,0 +1,19 @@
+version: 2
+updates:
+  # GitHub Actions only. There is deliberately no pip ecosystem here: the pack
+  # is bash calling curl and jq, and neither has a requirements.txt. Nothing to
+  # keep up to date is the point, not an omission.
+  - package-ecosystem: github-actions
+    directory: /
+    schedule:
+      interval: weekly
+      day: monday
+    labels:
+      - dependencies
+      - github-actions
+    commit-message:
+      prefix: "ci"
+    groups:
+      actions:
+        patterns:
+          - "*"
