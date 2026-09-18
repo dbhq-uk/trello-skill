@@ -38,6 +38,26 @@ Each skill is `skills/<name>/SKILL.md` plus optional `scripts/` and `references/
 ## Validating a change
 
 ```bash
-bash -n skills/*/scripts/*.sh     # scripts parse
-claude plugin validate .          # manifest + structure
+bash skills/trello/tests/helpers_test.sh   # the test suite - offline, 63 checks
+bash -n skills/*/scripts/*.sh              # scripts parse
+claude plugin validate .                   # manifest + structure
 ```
+
+The suite runs offline: a fake `curl` on `PATH` and a fixture `$HOME`, so it
+needs no API key, no Trello account and makes no request. CI runs it on every
+push. Three things in it are not tidiness and should not be weakened:
+
+- **Every request goes to `https://api.trello.com/1` and nowhere else.** The
+  key and token are in the query string of every call, so a request built
+  against the wrong host hands a Trello token to that host.
+- **Caller text goes out with `--data-urlencode`, never `-d`.** `curl` sends
+  `-d` raw: an `&` in a card title truncates the value and a `+` arrives as a
+  space.
+- **All five scripts carry the `~/.trello` migration, and it is guarded on the
+  destination not existing.** Whichever script an agent reaches for first has
+  to be the one that migrates. Three of outlook's four entry scripts got this
+  wrong on 17 Sep 2026 and settings were left behind.
+
+`render()` in `due-radar.sh`, `days_ago_iso()` and `resolve_config()` are
+tested by extracting the real function out of the live script, so renaming one
+fails the suite loudly instead of testing a stale copy.

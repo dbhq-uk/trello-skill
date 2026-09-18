@@ -55,6 +55,23 @@ jobs:
           sys.exit(0 if ok else 1)
           PY
 
+      # THE TEST SUITE, added 18 Sep 2026. Until then this workflow validated a
+      # manifest, parsed the shell and read the frontmatter - it checked that
+      # the pack was well formed and nothing at all about whether it worked, on
+      # 1,239 lines of bash driving a live REST API that holds somebody's
+      # boards. The suite is offline: a fake curl on PATH and a fixture $HOME,
+      # so it needs no API key and makes no request.
+      #
+      # What it is actually guarding, in order of what it would cost to get
+      # wrong: every request goes to api.trello.com and nowhere else (the
+      # credential is in the query string of every call, so a request built
+      # against the wrong host hands a Trello token to that host); caller text
+      # is sent with --data-urlencode rather than pasted into the query string;
+      # and all five scripts carry the ~/.trello migration, guarded, which is
+      # the exact thing three of outlook's four entry scripts got wrong.
+      - name: Run unit tests
+        run: bash skills/trello/tests/helpers_test.sh
+
   # THE SAME TWO LINTERS IN EVERY DBHQ SKILL REPO, added 17 Sep 2026. Nine of
   # the fourteen ran no linter at all, in an estate that is mostly bash and
   # Python - so a shell quoting hazard or a name that does not exist was only
