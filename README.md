@@ -61,6 +61,14 @@ whole skill directory is symlinked untouched, while Codex does not, so its
 `SKILL.md` is rewritten at install time. Re-run the Codex one after editing
 `SKILL.md`.
 
+## Requirements
+
+`jq` and `curl`, which is the whole of it - these are bash skills against
+the Trello REST API.
+
+A Trello API key and token, kept in `~/.dbhq/trello/config.json` at mode
+600. `trello-setup.sh` walks you through getting them.
+
 ## Setup
 
 Run the trello skill's setup once to add your Trello API key and token:
@@ -74,10 +82,6 @@ You will create a free Trello Power-Up to generate the key and token. They are s
 ## Development
 
 Want to hack on the pack, add a skill, or run it from source with live edits? See [`docs/dev-setup.md`](docs/dev-setup.md).
-
-## Requirements
-
-`jq` · `curl`
 
 ## Extending the pack
 
@@ -110,6 +114,6 @@ all documented at **[skills.dbhq.uk](https://skills.dbhq.uk)**.
 
 Plus [heliograph](https://skills.dbhq.uk/heliograph/), for a machine you cannot log into.
 
-## License
+## Licence
 
 [MIT](LICENSE) © 2026 DBHQ Consulting Ltd
