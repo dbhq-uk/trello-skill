@@ -1,7 +1,6 @@
 {
   "name": "trello",
   "description": "A pack of Trello skills for Claude Code and Codex - manage boards, lists and cards; sort a shopping list into store-aisle order; generate a board status digest; see what is due across boards; and set up and run a personal board that actually gets things done. Via the Trello REST API.",
-  "version": "1.1.0",
   "author": {
     "name": "DBHQ",
     "email": "dan@dbhq.uk"
