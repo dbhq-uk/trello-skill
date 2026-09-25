@@ -127,7 +127,33 @@ contains "in New York the same card shows at 19:30 that evening" "2026-09-25 19:
 out=$(export TZ=Europe/London; render '[{"name":"Christmas","due":"2026-12-25T09:00:00.000Z","url":"u","board":"B"}]' 200)
 contains "in GMT the hour is the UTC hour" "2026-12-25 09:00" "$out"
 
-unset -f date render trello_jq_defs
+# EACH ROW NAMES ITS LIST, AND DONE IS NOT OVERDUE. A card dragged to Done
+# without its due date ticked used to count as OVERDUE, with no list shown to
+# explain it. It is finished work: counted as neither overdue nor upcoming, and
+# shown apart, after the rest.
+out=$(render '[{"name":"Still to do","due":"2026-06-01T09:00:00.000Z","url":"u","board":"Work","list":"To do","done":false},
+               {"name":"Finished it","due":"2026-06-02T09:00:00.000Z","url":"u","board":"Work","list":"Done","done":true}]' 14)
+eq "a card in a done list is not counted as overdue" \
+   "1 overdue, 0 upcoming (next 14 days)" "$(echo "$out" | sed -n '1p' | sed 's/^  //')"
+contains "each row names its board and list" "[Work / To do]" "$out"
+contains "the done card is shown apart, and says why" "1 in a done list with the due date not ticked" "$out"
+contains "with its list named" "[Work / Done]" "$out"
+eq "and is not labelled OVERDUE" "" "$(grep 'Finished it' <<< "$out" | grep OVERDUE || true)"
+eq "the done group comes after the rest" "Finished it" "$(grep -E 'Still to do|Finished it' <<< "$out" | tail -1 | awk -F'  +' '{print $3}')"
+
+unset -f date render
+
+# is_done_list: which list names count as done. Letters and digits only, so an
+# emoji or a ! does not hide Done, and TRELLO_DONE_LISTS adds a board's own.
+for name in "Done" "✅ Done" "DONE!" "Completed" "finished"; do
+    eq "\"$name\" is a done list" "true" "$(jq -rn --arg n "$name" "$(trello_jq_defs)"'$n | is_done_list')"
+done
+for name in "Doing" "Not done" "Shipped" ""; do
+    eq "\"$name\" is not a done list" "false" "$(jq -rn --arg n "$name" "$(trello_jq_defs)"'$n | is_done_list')"
+done
+eq "TRELLO_DONE_LISTS adds a name of the user's own" "true" \
+   "$(TRELLO_DONE_LISTS="Shipped, Live" jq -rn "$(trello_jq_defs)"'"shipped" | is_done_list')"
+unset -f trello_jq_defs
 
 # days_ago_iso() lives once, in lib.sh, and carries the GNU/BSD date fallback.
 # Test the real one - a broken fallback is silent on the machine the author
@@ -710,6 +736,40 @@ echo '[{"id":"X1","name":"Idle","dateLastActivity":"2025-09-25T23:30:00.000Z"}]'
 capture "$LIFE" stale L1 1
 eq "stale dates the last activity in local time" "  2025-09-26  Idle" "$OUT"
 unset TZ FAKE_DIR
+
+# DONE IS NOT OVERDUE, END TO END. The list names come from the board's lists,
+# fetched only when there is a due card to name.
+export FAKE_DIR="$SANDBOX/done"; mkdir -p "$FAKE_DIR"
+echo '{"name":"Board","url":"u"}' > "$FAKE_DIR/boards_B1.json"
+echo '[{"id":"L1","name":"To do"},{"id":"L2","name":"✅ Done"},{"id":"L3","name":"Shipped"}]' > "$FAKE_DIR/boards_B1_lists.json"
+echo '[{"id":"X1","name":"Still to do","idList":"L1","due":"2020-01-01T09:00:00.000Z","dueComplete":false,"url":"u","labels":[]},
+       {"id":"X2","name":"Finished it","idList":"L2","due":"2020-01-02T09:00:00.000Z","dueComplete":false,"url":"u","labels":[]},
+       {"id":"X3","name":"Went live","idList":"L3","due":"2020-01-03T09:00:00.000Z","dueComplete":false,"url":"u","labels":[]}]' \
+    > "$FAKE_DIR/boards_B1_cards.json"
+echo '[]' > "$FAKE_DIR/boards_B1_actions.json"
+: > "$CURL_LOG"
+capture "$DUE" board B1 14
+eq "due-radar board exits 0" "0" "$RC"
+contains "due-radar counts only the card that is not done" "2 overdue, 0 upcoming" "$OUT"
+contains "due-radar names each card's list" "[Board / To do]" "$OUT"
+contains "due-radar shows the Done card apart" "1 in a done list with the due date not ticked" "$OUT"
+eq "and never calls it OVERDUE" "" "$(grep 'Finished it' <<< "$OUT" | grep OVERDUE || true)"
+contains "due-radar asks for the board's lists to name them" "/boards/B1/lists?" "$(cat "$CURL_LOG")"
+export TRELLO_DONE_LISTS="Shipped"
+capture "$DUE" board B1 14
+contains "TRELLO_DONE_LISTS makes a list of the user's own count as done" "1 overdue, 0 upcoming" "$OUT"
+contains "and its card is shown apart" "2 in a done list" "$OUT"
+unset TRELLO_DONE_LISTS
+capture "$DIGEST" digest B1 7
+contains "digest names the list of an overdue card" "OVERDUE : Still to do" "$OUT"
+contains "digest names it in brackets" "[To do]" "$OUT"
+contains "digest says a Done card's due date was not ticked" "in ✅ Done, due not ticked: Finished it" "$OUT"
+eq "and never calls it OVERDUE" "" "$(grep 'Finished it' <<< "$OUT" | grep OVERDUE || true)"
+echo '[{"id":"X9","name":"No date","idList":"L1","due":null,"dueComplete":false,"url":"u"}]' > "$FAKE_DIR/boards_B1_cards.json"
+: > "$CURL_LOG"
+capture "$DUE" board B1 14
+eq "a board with nothing due costs no lists request" "0" "$(grep -c '/lists' "$CURL_LOG")"
+unset FAKE_DIR
 
 # HOW TO WRITE ONE. Nothing told the agent, so the zone on a new due date was a
 # guess. trello/SKILL.md now states the rule.

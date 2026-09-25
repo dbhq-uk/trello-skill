@@ -50,5 +50,6 @@ The script gives you the raw structure. Add value on top:
 ## Notes
 
 - Recent activity uses the Trello actions feed, which surfaces card creation, moves between lists, comments, and updates within the chosen window. Every action in the window is fetched, page by page; if it was ever cut short, stderr says "capped at N" and the digest must say it is partial.
-- Due-date detection ignores cards already marked complete, and highlights anything due within three days as "due soon".
+- Due-date detection ignores cards already marked complete, and highlights anything due within three days as "due soon". Each row names the card's list in brackets.
+- A card in a done list (Done, Complete, Completed or Finished, or a name in `TRELLO_DONE_LISTS`) whose due date was never ticked is shown as "in Done, due not ticked", not OVERDUE. It is finished work: do not report it as overdue.
 - Every time is shown in the user's local time zone, which the header names.

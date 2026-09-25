@@ -188,10 +188,22 @@ days_ago_iso() {
 # There is no zone name on each time, on purpose: jq's %Z printed "GMT" during
 # BST in testing. The hour is right; only the name is wrong. So scripts print
 # the zone once, in the header, from local_now below.
+#
+# is_done_list takes a list's name and says whether it is where finished work
+# goes. People drag a card to Done and never tick its due date, and a card like
+# that is finished, not overdue. A list counts as done when its name, in
+# lowercase letters and digits only, is done, complete, completed or finished
+# ("✅ Done" and "DONE!" both count), or is one of the comma-separated names in
+# TRELLO_DONE_LISTS, for a board that calls it something else.
 trello_jq_defs() {
     cat <<'JQ'
 def local_time: sub("\\.[0-9]+Z$"; "Z") | fromdateiso8601 | strflocaltime("%Y-%m-%d %H:%M");
 def local_date: sub("\\.[0-9]+Z$"; "Z") | fromdateiso8601 | strflocaltime("%Y-%m-%d");
+def list_key: ascii_downcase | [scan("[a-z0-9]+")] | join(" ");
+def is_done_list: list_key as $k
+    | (["done", "complete", "completed", "finished"]
+       + (($ENV.TRELLO_DONE_LISTS // "") | split(",") | map(list_key)))
+    | map(select(length > 0) | . == $k) | any;
 JQ
 }
 

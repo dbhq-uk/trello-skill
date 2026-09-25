@@ -28,14 +28,17 @@ ${CLAUDE_SKILL_DIR}/../trello/scripts/trello-boards.sh find "<board name>"
 ${CLAUDE_SKILL_DIR}/scripts/due-radar.sh board <board-id> 14
 ```
 
-All overdue cards are always shown; the day window only limits how far ahead upcoming items reach. Cards already marked complete are excluded.
+All overdue cards are always shown; the day window only limits how far ahead upcoming items reach. Cards already marked complete are excluded. Each row names its board and list.
+
+A card sitting in a done list (Done, Complete, Completed or Finished, ignoring case, emoji and punctuation) whose due date was never ticked is finished work, not overdue. It is counted as neither overdue nor upcoming, and is listed apart after the rest. If the board calls its done list something else, name it: `TRELLO_DONE_LISTS="Shipped,Live" ${CLAUDE_SKILL_DIR}/scripts/due-radar.sh all`.
 
 ## Turning the radar into a briefing
 
 1. **Overdue first, in plain terms** - "Three cards are overdue, the oldest by nine days."
 2. **Then the near horizon** - what is due today and in the next few days.
 3. **Group by board when it helps** - if items span several boards, note where the pressure is concentrated.
-4. **Offer to act** - reschedule, mark complete, comment, or move cards via the `trello` skill - only after the user confirms.
+4. **Mention the done-list group briefly** - those cards are finished; offer to tick their due dates (`trello-cards.sh update <card-id> dueComplete true`) so they stop showing, and do not count them as overdue.
+5. **Offer to act** - reschedule, mark complete, comment, or move cards via the `trello` skill - only after the user confirms.
 
 ## Notes
 
