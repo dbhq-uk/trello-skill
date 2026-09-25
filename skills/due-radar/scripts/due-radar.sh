@@ -67,19 +67,42 @@ case "$cmd" in
             exit 0
         fi
 
+        # A board that cannot be read is named, not skipped. It used to become
+        # an empty list, so the radar said nothing was due on a board it never
+        # saw and exited 0. Trello's own message for each one goes to stderr
+        # as it happens; the boards are listed again after the results, and
+        # the exit code is 1.
         TMP=$(mktemp -d)
         trap 'rm -rf "$TMP"' EXIT
-        echo "$BOARDS" | jq -r '.[] | "\(.id)\t\(.name)"' | while IFS=$'\t' read -r bid bname; do
-            api_get_all "/boards/$bid/cards" "fields=name,due,dueComplete,url" \
-                | jq --arg b "$bname" '[.[] | select(.due != null and (.dueComplete | not)) | {name, due, url, board: $b}]' \
-                > "$TMP/$bid.json" 2>/dev/null || echo '[]' > "$TMP/$bid.json"
-        done
-        CARDS=$(cat "$TMP"/*.json | jq -s 'add')
+        : > "$TMP/failed"
+        n=0
+        while IFS=$'\t' read -r bid bname; do
+            n=$((n + 1))
+            if ! api_get_all "/boards/$bid/cards" "fields=name,due,dueComplete,url" > "$TMP/$n.raw" \
+                || ! jq --arg b "$bname" '[.[] | select(.due != null and (.dueComplete | not)) | {name, due, url, board: $b}]' \
+                    "$TMP/$n.raw" > "$TMP/$n.json"; then
+                rm -f "$TMP/$n.json"
+                printf '%s\n' "$bname" >> "$TMP/failed"
+            fi
+        done < <(echo "$BOARDS" | jq -r '.[] | "\(.id)\t\(.name)"')
+        if compgen -G "$TMP/*.json" > /dev/null; then
+            CARDS=$(jq -s 'add' "$TMP"/*.json)
+        else
+            CARDS='[]'
+        fi
 
         echo "=== Due radar - all boards ==="
         echo "As of $(date -u +'%Y-%m-%d %H:%M UTC')"
         echo
         render "$CARDS" "$DAYS"
+
+        FAILED=$(grep -c . "$TMP/failed" || true)
+        if [ "$FAILED" -gt 0 ]; then
+            echo
+            echo "  Incomplete: could not read $FAILED of $n boards. The radar above does not cover:"
+            sed 's/^/    - /' "$TMP/failed"
+            exit 1
+        fi
         ;;
 
     board)

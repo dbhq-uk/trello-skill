@@ -169,7 +169,7 @@ Every script exits non-zero and prints Trello's HTTP status and message on stder
 
 - **Invalid credentials** (HTTP 401, `invalid key` or `invalid token`): Re-run setup
 - **Board/list not found**: Check ID or use find command
-- **Rate limited**: Wait a few seconds and retry (300 req/10s per key)
+- **Rate limited** (HTTP 429): the scripts already retry three times, waiting 2, 4 and 8 seconds. If the error still reaches you, wait before trying again, and do not loop over many boards in one go (300 req/10s per key)
 
 ## Notes
 

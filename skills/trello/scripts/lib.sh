@@ -55,6 +55,14 @@ trello_auth_header() {
 # of it.
 set -o pipefail
 
+# Trello limits a token to 100 requests in 10 seconds and answers HTTP 429
+# past that. due-radar makes one request per board, so a user with many boards
+# is the one who meets it. api() retries a 429 three times, waiting 2, 4 and 8
+# seconds - which spans a whole 10-second window - and reports it only if the
+# last try is refused too.
+TRELLO_RETRIES=3
+TRELLO_RETRY_WAIT=2
+
 # api <METHOD> <endpoint> [query] [extra curl args...]
 #
 # The one place a request is made. <query> is extra query-string parameters
@@ -73,16 +81,28 @@ api() {
     local url="$TRELLO_BASE_URL$endpoint"
     [ -n "$query" ] && url="$url?$query"
 
-    local out status body
-    if ! out=$(trello_auth_header | curl -sS -X "$method" -H @- -w '\n%{http_code}' "$url" "$@"); then
-        echo "Error: could not reach Trello for $method $endpoint" >&2
-        return 1
-    fi
-    status="${out##*$'\n'}"
-    body="${out%$'\n'*}"
+    local out status body tries=0 wait="$TRELLO_RETRY_WAIT"
+    while :; do
+        if ! out=$(trello_auth_header | curl -sS -X "$method" -H @- -w '\n%{http_code}' "$url" "$@"); then
+            echo "Error: could not reach Trello for $method $endpoint" >&2
+            return 1
+        fi
+        status="${out##*$'\n'}"
+        body="${out%$'\n'*}"
+        # A 429 is Trello refusing the request before doing anything, so
+        # sending it again is safe for a write as well as a read.
+        if [ "$status" != 429 ] || [ "$tries" -ge "$TRELLO_RETRIES" ]; then break; fi
+        tries=$((tries + 1))
+        sleep "$wait"
+        wait=$((wait * 2))
+    done
     case "$status" in
         2[0-9][0-9])
             printf '%s\n' "$body"
+            ;;
+        429)
+            echo "Error: Trello answered HTTP 429 (rate limited) to $method $endpoint, and still did after $tries retries: ${body:0:500}" >&2
+            return 1
             ;;
         *)
             echo "Error: Trello answered HTTP $status to $method $endpoint: ${body:0:500}" >&2
