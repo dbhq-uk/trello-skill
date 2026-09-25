@@ -47,7 +47,7 @@ The [skills.sh](https://skills.sh) CLI installs into whichever agent directories
 it finds, so this works outside Claude Code and Codex too.
 
 **`trello` is the core, and the other four need it.** It holds setup and the
-scripts that store-sort, board-digest, due-radar and life-manager run, so
+shared helpers and scripts that store-sort, board-digest, due-radar and life-manager use, so
 each of those four must have `trello` installed beside it. The command above
 installs all five. If you pick single skills, add `trello` with them:
 
@@ -96,7 +96,7 @@ Want to hack on the pack, add a skill, or run it from source with live edits? Se
 
 ## Extending the pack
 
-`store-sort` reads its aisle order from a **preset** in `skills/store-sort/references/`. Copy `tesco.md` to add your own store. The pack is designed to grow - a board templater, quick-capture, and sprint reports are on the roadmap.
+`store-sort` reads its aisle order from a **preset**, a JSON file in `skills/store-sort/references/stores/`. To add your own store, copy `tesco.json` to `~/.dbhq/trello/stores/<store>.json` and change it. The pack is designed to grow - a board templater, quick-capture, and sprint reports are on the roadmap.
 
 ## Credentials and privacy
 

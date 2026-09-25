@@ -11,7 +11,7 @@ The **Trello** skill pack for AI coding agents - a set of skills for working wit
 ```
 .claude-plugin/plugin.json          # plugin manifest (bundles all skills below)
 skills/trello/                      # core board/list/card management + setup
-skills/store-sort/                  # shopping list into store-aisle order (Tesco preset)
+skills/store-sort/                  # shopping list into store-aisle order (Tesco preset, as data)
 skills/board-digest/                # board status snapshot
 skills/due-radar/                   # due/overdue across boards
 skills/life-manager/                # personal board setup, triage and coaching
@@ -41,7 +41,7 @@ Each skill is `skills/<name>/SKILL.md` plus optional `scripts/` and `references/
 ## Adding to the pack
 
 - New skill: add `skills/<name>/SKILL.md` (valid frontmatter, `name` matching the directory). The plugin auto-discovers it.
-- New store preset for `store-sort`: copy `skills/store-sort/references/tesco.md`.
+- New store preset for `store-sort`: copy `skills/store-sort/references/stores/tesco.json`. Sections are in aisle order, their position ranges must not overlap, and no keyword or emoji may belong to two sections - the suite checks every preset there. A user keeps their own layouts in `~/.dbhq/trello/stores/`.
 
 ## Validating a change
 
@@ -66,7 +66,7 @@ push. These things in it are not tidiness and should not be weakened:
   space.
 - **Every entry script runs the `~/.trello` migration, and it is guarded on
   the destination not existing.** It lives in lib.sh and runs when lib.sh is
-  sourced, and the suite runs all six entry scripts to prove each one still
+  sourced, and the suite runs all seven entry scripts to prove each one still
   does. Whichever script an agent reaches for first has to be the one that
   migrates. Three of outlook's four entry scripts got this wrong on 17 Sep 2026
   and settings were left behind.
