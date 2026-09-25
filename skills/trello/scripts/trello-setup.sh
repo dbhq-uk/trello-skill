@@ -3,16 +3,12 @@
 
 set -e
 
-CONFIG_DIR="$HOME/.dbhq/trello"
-CONFIG_FILE="$CONFIG_DIR/config.json"
-
-# One-time migration: settings used to live at ~/.trello
-if [ ! -e "$CONFIG_DIR" ] && [ -d "$HOME/.trello" ]; then
-    mkdir -p "$HOME/.dbhq"
-    chmod 700 "$HOME/.dbhq"
-    mv "$HOME/.trello" "$CONFIG_DIR"
-    chmod 700 "$CONFIG_DIR"
-fi
+# Sourcing lib.sh runs the ~/.trello migration. Setup does not load the
+# config - it is the script that writes it.
+# shellcheck source=lib.sh
+. "$(dirname "${BASH_SOURCE[0]}")/lib.sh"
+CONFIG_DIR="$TRELLO_CONFIG_DIR"
+CONFIG_FILE="$TRELLO_CONFIG_FILE"
 
 echo "=== Trello API Setup ==="
 echo
@@ -59,7 +55,7 @@ fi
 echo
 echo "Testing credentials..."
 
-RESPONSE=$(curl -s "https://api.trello.com/1/members/me?key=$API_KEY&token=$TOKEN")
+RESPONSE=$(api_get "/members/me")
 
 if echo "$RESPONSE" | jq -e '.id' > /dev/null 2>&1; then
     USERNAME=$(echo "$RESPONSE" | jq -r '.username')

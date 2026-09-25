@@ -74,8 +74,9 @@ jobs:
       # credential is in the query string of every call, so a request built
       # against the wrong host hands a Trello token to that host); caller text
       # is sent with --data-urlencode rather than pasted into the query string;
-      # and all five scripts carry the ~/.trello migration, guarded, which is
-      # the exact thing three of outlook's four entry scripts got wrong.
+      # and every entry script runs the ~/.trello migration, guarded, which is
+      # the exact thing three of outlook's four entry scripts got wrong. The
+      # migration and every request now live once, in skills/trello/scripts/lib.sh.
       - name: Run unit tests
         run: bash skills/trello/tests/helpers_test.sh
 

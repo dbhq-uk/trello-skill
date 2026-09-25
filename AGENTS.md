@@ -22,8 +22,8 @@ Each skill is `skills/<name>/SKILL.md` plus optional `scripts/` and `references/
 
 ## Conventions
 
-- Scripts are self-contained: they read credentials from `~/.dbhq/trello/config.json` and have no bundled-path dependencies, so they run from any location.
-- The `trello` core skill owns setup and the shared API scripts. Other skills (e.g. `store-sort`) call the core scripts by their `${CLAUDE_SKILL_DIR}/../trello/scripts/...` path - `${CLAUDE_SKILL_DIR}` is the calling skill's own directory, so `../trello` is the sibling core skill (all skills sit side by side under the plugin / `~/.claude/skills/`).
+- Every script sources `skills/trello/scripts/lib.sh`, found relative to its own path, and makes no request of its own. lib.sh holds config loading, the `~/.trello` migration, the one `api()` call and the shared helpers, so a fix to how a request is made lands once. Scripts in the other skills reach it as `../../trello/scripts/lib.sh` and, when a partial install left `trello` out, stop with a message that names it.
+- The `trello` core skill owns setup, lib.sh and the shared API scripts. Other skills (e.g. `store-sort`) call the core scripts by their `${CLAUDE_SKILL_DIR}/../trello/scripts/...` path - `${CLAUDE_SKILL_DIR}` is the calling skill's own directory, so `../trello` is the sibling core skill (all skills sit side by side under the plugin / `~/.claude/skills/`).
 - SKILL.md references scripts via `${CLAUDE_SKILL_DIR}` (the skill's own directory), which Claude Code substitutes for personal, project, and plugin installs alike. `install.sh` therefore symlinks the whole skill directory into `~/.claude/skills/` (no rewrite). `install-codex.sh` still rewrites the variable to the install path, since Codex does not substitute it.
 - Shell scripts use `set -e`; errors go to stderr, structured output to stdout.
 - Any caller-supplied text sent to the API (card names, descriptions, comments) goes through `curl --data-urlencode`, never plain `-d` - `-d` sends the body raw, so an `&` silently truncates the value and a `+` arrives as a space.
@@ -38,7 +38,7 @@ Each skill is `skills/<name>/SKILL.md` plus optional `scripts/` and `references/
 ## Validating a change
 
 ```bash
-bash skills/trello/tests/helpers_test.sh   # the test suite - offline, 63 checks
+bash skills/trello/tests/helpers_test.sh   # the test suite - offline
 bash -n skills/*/scripts/*.sh              # scripts parse
 claude plugin validate .                   # manifest + structure
 ```
@@ -53,11 +53,16 @@ push. Three things in it are not tidiness and should not be weakened:
 - **Caller text goes out with `--data-urlencode`, never `-d`.** `curl` sends
   `-d` raw: an `&` in a card title truncates the value and a `+` arrives as a
   space.
-- **All five scripts carry the `~/.trello` migration, and it is guarded on the
-  destination not existing.** Whichever script an agent reaches for first has
-  to be the one that migrates. Three of outlook's four entry scripts got this
-  wrong on 17 Sep 2026 and settings were left behind.
+- **Every entry script runs the `~/.trello` migration, and it is guarded on
+  the destination not existing.** It lives in lib.sh and runs when lib.sh is
+  sourced, and the suite runs all six entry scripts to prove each one still
+  does. Whichever script an agent reaches for first has to be the one that
+  migrates. Three of outlook's four entry scripts got this wrong on 17 Sep 2026
+  and settings were left behind.
+- **No script but lib.sh calls `curl`, loads the config or migrates.** The
+  suite greps for it. Six copies of that plumbing is how one error-handling bug
+  came to be in about thirty places.
 
-`render()` in `due-radar.sh`, `days_ago_iso()` and `resolve_config()` are
-tested by extracting the real function out of the live script, so renaming one
-fails the suite loudly instead of testing a stale copy.
+`render()` in `due-radar.sh`, `days_ago_iso()` in `lib.sh` and
+`resolve_config()` are tested by extracting the real function out of the live
+script, so renaming one fails the suite loudly instead of testing a stale copy.
