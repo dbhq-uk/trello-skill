@@ -46,6 +46,17 @@ npx skills add dbhq-uk/trello-skill
 The [skills.sh](https://skills.sh) CLI installs into whichever agent directories
 it finds, so this works outside Claude Code and Codex too.
 
+**`trello` is the core, and the other four need it.** It holds setup and the
+scripts that store-sort, board-digest, due-radar and life-manager run, so
+each of those four must have `trello` installed beside it. The command above
+installs all five. If you pick single skills, add `trello` with them:
+
+```bash
+npx skills add dbhq-uk/trello-skill --skill trello --skill due-radar
+```
+
+A script whose `trello` is missing stops and says so, with the command to add it.
+
 ### Local install (Claude Code or Codex)
 
 ```bash

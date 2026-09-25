@@ -7,6 +7,8 @@ description: Show what is due, overdue, or coming up across your Trello boards, 
 
 A cross-board triage view: every card with a due date, sorted by when it is due, with overdue items surfaced first. Answers "what needs my attention?" in one command. Built on the `trello` skill in this pack.
 
+**Needs the `trello` skill installed beside it.** `due-radar.sh` loads `trello`'s shared helpers, and the board lookup and setup ship only in `trello`. The plugin and `install.sh` install both. With the skills CLI, add both by name: `npx skills add dbhq-uk/trello-skill --skill trello --skill due-radar`. If `trello` is missing, the script stops and says so, with the command to add it.
+
 ## Prerequisites
 
 - Credentials configured in `~/.dbhq/trello/` (run the trello skill's setup if not done)

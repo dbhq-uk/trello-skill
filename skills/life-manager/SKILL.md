@@ -17,6 +17,8 @@ Three modes, chosen by what the user asks for:
 
 Built on the `trello` skill in this pack.
 
+**Needs the `trello` skill installed beside it.** `life-board.sh` loads `trello`'s shared helpers, every card and board call below is a `trello` script, and setup ships only in `trello`. The plugin and `install.sh` install both. With the skills CLI, add both by name: `npx skills add dbhq-uk/trello-skill --skill trello --skill life-manager`. If `trello` is missing, the script stops and says so, with the command to add it.
+
 ## Nothing personal lives in this skill
 
 There are no hardcoded boards, lists, labels, clients or people here, and none may be added. Everything specific to a user lives in **their** config file, in **their** repo.
@@ -123,8 +125,8 @@ When a card has not moved and has no checklist:
 - Make the first chip small enough to be embarrassing
 
 ```bash
-CL=$(trello-cards.sh checklist-add <card-id> "Chips")
-trello-cards.sh checkitem-add "$CL" "<first small step>"
+CL=$(${CLAUDE_SKILL_DIR}/../trello/scripts/trello-cards.sh checklist-add <card-id> "Chips")
+${CLAUDE_SKILL_DIR}/../trello/scripts/trello-cards.sh checkitem-add "$CL" "<first small step>"
 ```
 
 ### Long-burn cards
@@ -150,11 +152,12 @@ ${CLAUDE_SKILL_DIR}/../trello/scripts/trello-cards.sh move <card-id> <list-id>
 ${CLAUDE_SKILL_DIR}/../trello/scripts/trello-cards.sh position <card-id> <pos>
 ```
 
-Apply a label with `trello-cards.sh`. Label IDs come from
-`trello-boards.sh labels <board-id>`:
+Apply a label with `trello-cards.sh label-add`. Label IDs come from
+`trello-boards.sh labels`:
 
 ```bash
-trello-cards.sh label-add <card-id> <label-id>
+${CLAUDE_SKILL_DIR}/../trello/scripts/trello-boards.sh labels <board-id>
+${CLAUDE_SKILL_DIR}/../trello/scripts/trello-cards.sh label-add <card-id> <label-id>
 ```
 
 The scripts read credentials from the config themselves and send them in a

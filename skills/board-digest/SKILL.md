@@ -7,6 +7,8 @@ description: Produce a plain-English status digest of a Trello board - lists and
 
 Turns a Trello board into a readable status update: what is in each list, what is due or overdue, and what has moved recently. Ideal for a standup, a weekly review, or catching up after time away. Built on the `trello` skill in this pack.
 
+**Needs the `trello` skill installed beside it.** `board-digest.sh` loads `trello`'s shared helpers, and the board lookup and setup ship only in `trello`. The plugin and `install.sh` install both. With the skills CLI, add both by name: `npx skills add dbhq-uk/trello-skill --skill trello --skill board-digest`. If `trello` is missing, the script stops and says so, with the command to add it.
+
 ## Prerequisites
 
 - Credentials configured in `~/.dbhq/trello/` (run the trello skill's setup if not done)

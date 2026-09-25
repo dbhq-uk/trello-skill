@@ -448,6 +448,37 @@ for s in "$DIGEST" "$DUE" "$LIFE"; do
     rm -rf "$lone"
 done
 
+# AND THE DOCS SAY SO BEFORE ANYTHING RUNS. store-sort has no script to print
+# that message, so its SKILL.md is the only thing that can - and a user picking
+# skills one by one reads the README and the SKILL.md, not the error.
+for skill in store-sort board-digest due-radar life-manager; do
+    contains "$skill/SKILL.md says it needs trello, with the install command" \
+       "npx skills add dbhq-uk/trello-skill --skill trello --skill $skill" \
+       "$(cat "$REPO_ROOT/skills/$skill/SKILL.md")"
+done
+contains "store-sort/SKILL.md tells the agent to check trello is there first" \
+   'check that `${CLAUDE_SKILL_DIR}/../trello/scripts/` exists' \
+   "$(cat "$REPO_ROOT/skills/store-sort/SKILL.md")"
+contains "the README install section says the other four need trello" \
+   "each of those four must have \`trello\` installed beside it" "$(tr '\n' ' ' < "$REPO_ROOT/README.md")"
+contains "the README shows installing trello alongside a single skill" \
+   "npx skills add dbhq-uk/trello-skill --skill trello --skill" "$(cat "$REPO_ROOT/README.md")"
+
+# EVERY SCRIPT A SKILL.md RUNS HAS ITS PATH. A bare `trello-cards.sh` in a code
+# block works only if the agent guesses where it lives, and on a partial or
+# Codex install it guesses wrong. Checked inside code fences only, where the
+# lines are commands; prose may name a script on its own.
+bare=$(for f in "$REPO_ROOT"/skills/*/SKILL.md; do
+    awk -v f="${f#"$REPO_ROOT"/}" '/^[[:space:]]*```/{fence=!fence; next}
+        fence { line=$0
+                while (match(line, /[[:alnum:]_.\/${}-]*(trello-cards|trello-boards|trello-setup|board-digest|due-radar|life-board)\.sh/)) {
+                    tok=substr(line, RSTART, RLENGTH)
+                    if (tok !~ /^\$\{CLAUDE_SKILL_DIR\}\//) print f ": " $0
+                    line=substr(line, RSTART+RLENGTH)
+                } }' "$f"
+done)
+eq "every script run in a SKILL.md code block starts at \${CLAUDE_SKILL_DIR}" "" "$bare"
+
 # USAGE WITHOUT ARGUMENTS, AND WITHOUT A REQUEST. An unknown verb must not
 # reach the API: it is how a typo becomes a call against a path built from the
 # typo. And it must fail: usage on stdout with exit 0 reads to an agent like a

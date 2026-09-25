@@ -7,6 +7,8 @@ description: Sort a Trello shopping list into a supermarket's aisle-flow order, 
 
 Reorders a Trello shopping list to match how a supermarket lays out its store, prefixing a food-type emoji to every card so the list is fast to shop and easy to scan. Works for any store through a **preset** that defines the aisle order, and ships with a **Tesco (UK)** preset as the default. Built on the `trello` skill in this pack.
 
+**Needs the `trello` skill installed beside it.** store-sort has no scripts of its own. Every step below runs a script from `trello`, and setup ships only there. The plugin and `install.sh` install both. With the skills CLI, add both by name: `npx skills add dbhq-uk/trello-skill --skill trello --skill store-sort`. Before the first step, check that `${CLAUDE_SKILL_DIR}/../trello/scripts/` exists. If it does not, stop and tell the user that store-sort needs the `trello` skill, and give them that command.
+
 ## How it works
 
 1. Resolve the target board and list
