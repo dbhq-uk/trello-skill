@@ -16,7 +16,7 @@ When a card has not moved and has no checklist, the diagnosis is almost always t
 
 ## What counts as friction
 
-Read the whole board, then look for these. Thresholds come from the user's config `stale_days`.
+Read the whole board, then look for these. Thresholds come from the user's config `stale_days`; `life-board.sh stale <list-id> <days>` finds the cards past one.
 
 | Signal | What it usually means |
 |--------|----------------------|
@@ -25,7 +25,7 @@ Read the whole board, then look for these. Thresholds come from the user's confi
 | Multi-step card, no checklist | A project misfiled as a task. The most common cause of a stuck board. |
 | A list far above its cap | The cap is being ignored - find out whether the cap is wrong or the sorting is. |
 | Dependant card nobody has chased | Not blocked. Abandoned behind a polite word. |
-| Long Burn card with no new ticks | Either not actually a priority, or not broken down. Make them choose. |
+| Long Burn card with no activity past its `stale_days` | Nothing ticked, commented or edited. Either not actually a priority, or not broken down. Make them choose. |
 | Unlabelled cards | Invisible to every filter. Cheap to fix, so just fix it. |
 | Duplicates | The same task written twice means neither felt real. |
 | Cryptic titles | A title that means nothing in six weeks is a card that will be re-decoded or ignored. |
