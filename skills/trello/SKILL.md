@@ -7,14 +7,15 @@ description: Manage Trello boards, lists, and cards - find a board, read, create
 
 Manage Trello boards, lists, and cards via the Trello REST API.
 
-## Core convention - ALWAYS categorise every card
+## Labels - keep a labelled board labelled
 
-**Every card must carry a category label. No exceptions.** Whenever you create a card, sort/order, or "organise / align" a board, ensure EVERY card on the affected list(s) has a label - not just the top few you reordered. "Order the backlog" or "align with the roadmap" means **categorise the whole list**, then order it - never leave a flat, unlabelled tail.
+**On a board that uses labels, every card on a list you touch carries one.** A board uses labels when its cards carry them: `trello-cards.sh list-json <list-id>` shows each card's labels. On such a board, whenever you create a card or sort or organise a list, make sure every card on the lists you touched has a label - not only the few you moved. A board whose cards carry no labels stays that way unless the user asks for labels.
 
-- Read the board's existing labels first (`trello-boards.sh labels <board-id>`); reuse them, don't invent a parallel taxonomy. Typical set: Business, Feature, Pipeline, DevOps/Infra, Data, UI/UX, Bug/Fix.
+- Reuse the board's own labels (`trello-boards.sh labels <board-id>`). Do not invent a parallel set, and do not create a label the user did not ask for.
 - `trello-cards.sh` reads **and** writes labels: `labels` to show them, `label-add <card-id> <label-id>` and `label-remove` to change them. Label IDs come from `trello-boards.sh labels <board-id>`. The scripts send the key and token in a request header fed to curl on stdin, so neither ever reaches a command line or `ps` output.
-- When you create a card, label it in the same pass.
-- After any board-org task, verify zero unlabelled cards remain on the lists you touched.
+- When you create a card on a labelled board, label it in the same pass.
+- After organising a labelled board, check that no card on the lists you touched is left without a label.
+- On a shopping list the emoji at the start of each card's title is its category, so shopping cards carry no labels. That holds even on a board whose other lists use labels. store-sort sets that emoji.
 
 ## Prerequisites
 
