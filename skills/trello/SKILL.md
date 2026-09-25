@@ -98,8 +98,11 @@ ${CLAUDE_SKILL_DIR}/scripts/trello-cards.sh read <card-id>
 # Create a card
 ${CLAUDE_SKILL_DIR}/scripts/trello-cards.sh create <list-id> "Card title" "Optional description"
 
-# Update card field (name, desc, due, closed)
+# Update card field (name, desc, due, dueComplete, closed)
 ${CLAUDE_SKILL_DIR}/scripts/trello-cards.sh update <card-id> name "New title"
+
+# Tick a card's due date as done (false to untick)
+${CLAUDE_SKILL_DIR}/scripts/trello-cards.sh update <card-id> dueComplete true
 
 # Move card to another list
 ${CLAUDE_SKILL_DIR}/scripts/trello-cards.sh move <card-id> <list-id>
@@ -145,6 +148,8 @@ ${CLAUDE_SKILL_DIR}/scripts/trello-cards.sh comments <card-id>
 
 ### Archive & Delete
 
+**Never delete a card unless the user names that card and asks for it to be deleted.** Prefer `archive`: it takes the card off the board and `unarchive` brings it back. A delete cannot be undone, and it takes the card's comments and checklists with it. When the user says "remove", "clear" or "get rid of", archive. Never delete cards in a batch, and never delete to tidy up after yourself.
+
 ```bash
 # Archive card
 ${CLAUDE_SKILL_DIR}/scripts/trello-cards.sh archive <card-id>
@@ -152,7 +157,7 @@ ${CLAUDE_SKILL_DIR}/scripts/trello-cards.sh archive <card-id>
 # Restore archived card
 ${CLAUDE_SKILL_DIR}/scripts/trello-cards.sh unarchive <card-id>
 
-# Delete permanently
+# Delete permanently - only a card the user named and asked to delete
 ${CLAUDE_SKILL_DIR}/scripts/trello-cards.sh delete <card-id>
 ```
 
@@ -161,6 +166,10 @@ ${CLAUDE_SKILL_DIR}/scripts/trello-cards.sh delete <card-id>
 ```bash
 # Show labels
 ${CLAUDE_SKILL_DIR}/scripts/trello-cards.sh labels <card-id>
+
+# Apply a board label, or take it off - label ids come from the board's `labels` above
+${CLAUDE_SKILL_DIR}/scripts/trello-cards.sh label-add <card-id> <label-id>
+${CLAUDE_SKILL_DIR}/scripts/trello-cards.sh label-remove <card-id> <label-id>
 
 # Show assigned members
 ${CLAUDE_SKILL_DIR}/scripts/trello-cards.sh members <card-id>
