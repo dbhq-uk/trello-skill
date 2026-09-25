@@ -19,6 +19,14 @@ usage() {
     echo "  board <board-id>    Get board details"
     echo "  list <list-id>      Get list details"
     echo "  labels <board-id>   List a board's labels with their ids"
+    echo
+    echo "Creating & Renaming:"
+    echo "  board-create <name> [desc]                Create a board, prints [id] name"
+    echo "  list-create <board-id> <name> [top|bottom] Add a list (default: bottom)"
+    echo "  list-rename <list-id> <name>              Rename a list"
+    echo "  label-create <board-id> <name> [colour]   Add a label (default: no colour)"
+    echo
+    echo "Label colours: green, yellow, orange, red, purple, blue, sky, lime, pink, black."
 }
 
 case "$1" in
@@ -103,6 +111,72 @@ case "$1" in
 
         echo "$RESPONSE" | jq -r 'if length == 0 then "No labels on this board."
             else .[] | "[\(.id)] \(if (.name // "") == "" then "(no name)" else .name end) (\(.color // "no colour"))" end'
+        ;;
+
+    board-create)
+        # Create a board. Trello gives a new board its own starter lists and
+        # six unnamed colour labels; life-manager's setup renames those lists
+        # rather than adding to them.
+        if [ -z "${2:-}" ]; then
+            echo "Usage: trello-boards.sh board-create <name> [description]"
+            exit 1
+        fi
+
+        RESPONSE=$(api_post "/boards" --data-urlencode "name=$2" --data-urlencode "desc=${3:-}")
+
+        echo "Board created:"
+        echo "$RESPONSE" | jq -r '"[\(.id)] \(.name)\nURL: \(.url // "")"'
+        ;;
+
+    list-create)
+        # Add a list to a board, at the bottom unless asked for the top.
+        if [ -z "${2:-}" ] || [ -z "${3:-}" ]; then
+            echo "Usage: trello-boards.sh list-create <board-id> <name> [top|bottom]"
+            exit 1
+        fi
+        POS="${4:-bottom}"
+        case "$POS" in
+            top|bottom) ;;
+            *) echo "Error: position must be top or bottom, not '$POS'" >&2; exit 1 ;;
+        esac
+
+        RESPONSE=$(api_post "/lists" --data-urlencode "idBoard=$2" \
+            --data-urlencode "name=$3" --data-urlencode "pos=$POS")
+
+        echo "List created:"
+        echo "$RESPONSE" | jq -r '"[\(.id)] \(.name)"'
+        ;;
+
+    list-rename)
+        # Rename a list. Renaming an existing list beats adding a new one:
+        # the cards already in it keep their place.
+        if [ -z "${2:-}" ] || [ -z "${3:-}" ]; then
+            echo "Usage: trello-boards.sh list-rename <list-id> <name>"
+            exit 1
+        fi
+
+        RESPONSE=$(api_put "/lists/$2" --data-urlencode "name=$3")
+
+        echo "List renamed:"
+        echo "$RESPONSE" | jq -r '"[\(.id)] \(.name)"'
+        ;;
+
+    label-create)
+        # Add a label to a board and print its id, ready for
+        # `trello-cards.sh label-add`. With no colour the label has none.
+        if [ -z "${2:-}" ] || [ -z "${3:-}" ]; then
+            echo "Usage: trello-boards.sh label-create <board-id> <name> [colour]"
+            exit 1
+        fi
+        # Trello names the colours and says null is no colour. It rejects
+        # anything else with its own message, which api() passes on.
+        COLOUR="${4:-null}"
+
+        RESPONSE=$(api_post "/boards/$2/labels" --data-urlencode "name=$3" \
+            --data-urlencode "color=$COLOUR")
+
+        echo "Label created:"
+        echo "$RESPONSE" | jq -r '"[\(.id)] \(.name) (\(.color // "no colour"))"'
         ;;
 
     help|-h|--help)

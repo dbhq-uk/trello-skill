@@ -591,6 +591,102 @@ capture "$BOARDS" labels
 eq "labels with no board id prints its usage line" "Usage: trello-boards.sh labels <board-id>" "$OUT"
 eq "labels with no board id makes no request" "0" "$(wc -l < "$CURL_LOG" | tr -d ' ')"
 
+# THE WRITE VERBS life-manager NEEDS. Its setup creates a board, renames and
+# adds lists and agrees labels, and its coach mode ticks checklist items, but
+# no script could do any of it - so the agent wrote raw curl calls with the key
+# and token in its own command line. Each verb is checked for its endpoint,
+# its method, and that caller text goes out with --data-urlencode rather than
+# in the URL.
+check_write() {  # check_write <name> <method> <url> <expected arg>... -- <script> [args...]
+    local name="$1" method="$2" url="$3"; shift 3
+    local want=()
+    while [ "$1" != "--" ]; do want+=("$1"); shift; done; shift
+    : > "$CURL_LOG"
+    capture "$@"
+    local line; line=$(cat "$CURL_LOG")
+    eq "$name exits 0" "0" "$RC"
+    eq "$name makes one request" "1" "$(wc -l < "$CURL_LOG" | tr -d ' ')"
+    contains "$name uses $method" "-X $method " "$line"
+    eq "$name goes to $url" "$url" "$(echo "$line" | grep -oE 'https://[^ ]+')"
+    for w in "${want[@]}"; do
+        contains "$name sends $w" "--data-urlencode $w" "$line"
+    done
+}
+export FAKE_BODY='{"id":"NEW1","name":"n","url":"u","color":"green","state":"complete"}'
+check_write "board-create" POST "https://api.trello.com/1/boards" \
+    "name=Life & admin" "desc=C++ + notes" -- "$BOARDS" board-create "Life & admin" "C++ + notes"
+check_write "list-create" POST "https://api.trello.com/1/lists" \
+    "idBoard=B1" "name=Inbox & misc" "pos=top" -- "$BOARDS" list-create B1 "Inbox & misc" top
+check_write "list-create at the default position" POST "https://api.trello.com/1/lists" \
+    "pos=bottom" -- "$BOARDS" list-create B1 "Backlog"
+check_write "list-rename" PUT "https://api.trello.com/1/lists/L1" \
+    "name=Today + tomorrow" -- "$BOARDS" list-rename L1 "Today + tomorrow"
+check_write "label-create" POST "https://api.trello.com/1/boards/B1/labels" \
+    "name=Health & fitness" "color=green" -- "$BOARDS" label-create B1 "Health & fitness" green
+check_write "label-create with no colour" POST "https://api.trello.com/1/boards/B1/labels" \
+    "color=null" -- "$BOARDS" label-create B1 "Admin"
+check_write "checkitem-done" PUT "https://api.trello.com/1/cards/CARD1/checkItem/ITEM1" \
+    "state=complete" -- "$CARDS" checkitem-done CARD1 ITEM1
+capture "$BOARDS" label-create B1 "Health" green
+eq "label-create prints the new label's id" "Label created:
+[NEW1] n (green)" "$OUT"
+unset FAKE_BODY
+unset -f check_write
+
+# A missing argument prints the verb's usage and sends nothing.
+for args in "board-create" "list-create B1" "list-rename L1" "label-create B1"; do
+    : > "$CURL_LOG"
+    # shellcheck disable=SC2086  # the words are the arguments
+    capture "$BOARDS" $args
+    contains "$args with an argument missing prints its usage" "Usage: trello-boards.sh ${args%% *}" "$OUT"
+    eq "$args with an argument missing makes no request" "0" "$(wc -l < "$CURL_LOG" | tr -d ' ')"
+done
+: > "$CURL_LOG"
+capture "$CARDS" checkitem-done CARD1
+contains "checkitem-done with no item id prints its usage" "Usage: trello-cards.sh checkitem-done" "$OUT"
+eq "checkitem-done with no item id makes no request" "0" "$(wc -l < "$CURL_LOG" | tr -d ' ')"
+: > "$CURL_LOG"
+capture "$BOARDS" list-create B1 "Inbox" middle
+eq "list-create refuses a position other than top or bottom" "1" "$RC"
+eq "list-create with a bad position makes no request" "0" "$(wc -l < "$CURL_LOG" | tr -d ' ')"
+
+# A refused write is an error, not a success line.
+export FAKE_BODY='invalid token' FAKE_STATUS=401
+check_error "board-create"   "$BOARDS" board-create "Life"
+check_error "list-create"    "$BOARDS" list-create B1 "Inbox"
+check_error "list-rename"    "$BOARDS" list-rename L1 "Today"
+check_error "label-create"   "$BOARDS" label-create B1 "Health"
+check_error "checkitem-done" "$CARDS" checkitem-done CARD1 ITEM1
+unset FAKE_BODY FAKE_STATUS
+
+# checkitem-done needs an item id, so checklist has to show one.
+export FAKE_BODY='[{"id":"CL1","name":"Chips","checkItems":[
+  {"id":"IT2","name":"Second","state":"incomplete","pos":2},
+  {"id":"IT1","name":"First","state":"complete","pos":1}]}]'
+capture "$CARDS" checklist CARD1
+eq "checklist shows each checklist's id and each item's id, in order" "=== Chips [CL1] ===
+  [x] First  (item IT1)
+  [ ] Second  (item IT2)" "$OUT"
+unset FAKE_BODY
+
+# Every verb is in its script's help and in trello/SKILL.md, and life-manager
+# drives setup and coaching through them, with no request of its own.
+capture "$BOARDS" help; BOARDS_HELP="$OUT"
+capture "$CARDS" help; CARDS_HELP="$OUT"
+TRELLO_MD=$(cat "$REPO_ROOT/skills/trello/SKILL.md")
+LIFE_DOCS=$(cat "$REPO_ROOT/skills/life-manager/SKILL.md" "$REPO_ROOT/skills/life-manager/references/"*.md)
+for v in board-create list-create list-rename label-create; do
+    contains "trello-boards.sh help lists $v" "  $v " "$BOARDS_HELP"
+    contains "trello/SKILL.md documents $v" "trello-boards.sh $v " "$TRELLO_MD"
+    contains "life-manager uses $v" "trello-boards.sh $v " "$LIFE_DOCS"
+done
+contains "trello-cards.sh help lists checkitem-done" "  checkitem-done " "$CARDS_HELP"
+contains "trello/SKILL.md documents checkitem-done" "trello-cards.sh checkitem-done " "$TRELLO_MD"
+contains "life-manager uses checkitem-done" "trello-cards.sh checkitem-done " "$LIFE_DOCS"
+eq "life-manager's docs make no request of their own" "" \
+   "$(printf '%s\n' "$LIFE_DOCS" | grep -nE 'curl +-|api\.trello\.com' || true)"
+unset BOARDS_HELP CARDS_HELP TRELLO_MD LIFE_DOCS
+
 : > "$CURL_LOG"
 out=$(run_in_sandbox "$CARDS" create L1)
 contains "create with a missing title prints its own usage line" "Usage: trello-cards.sh create" "$out"

@@ -72,4 +72,6 @@ These carry weight that a work card does not. Somebody's untouched "book the sca
 
 A coaching conversation that changes nothing on the board was a chat. Before finishing, make sure something is different: a checklist added, a chip ticked, a card moved, a title fixed, a decision recorded in a description.
 
+Each of those is one `trello` call: `trello-cards.sh checklist-add` and `checkitem-add`, `checkitem-done <card-id> <item-id>` (item ids come from `checklist <card-id>`), `move`, `update <card-id> name`, and `update <card-id> desc`.
+
 Then say what changed, in one short list. Not a report - a receipt.

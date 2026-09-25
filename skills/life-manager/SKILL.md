@@ -79,13 +79,23 @@ Read `references/default-board.md` first; it explains the structure and, more im
 1. **Resolve or create the board.** Ask which board to use, or create one.
    ```bash
    ${CLAUDE_SKILL_DIR}/../trello/scripts/trello-boards.sh find "<board name>"
+   ${CLAUDE_SKILL_DIR}/../trello/scripts/trello-boards.sh board-create "<board name>"
    ${CLAUDE_SKILL_DIR}/../trello/scripts/trello-boards.sh lists <board-id>
    ```
-2. **Reuse before you create.** If the board already has lists, map the existing ones onto the preset rather than making duplicates - an empty or near-empty list is almost always the right home for a new role. Renaming beats creating.
+2. **Reuse before you create.** If the board already has lists, map the existing ones onto the preset rather than making duplicates - an empty or near-empty list is almost always the right home for a new role. Renaming beats creating. A new board comes with Trello's own starter lists, so rename those first.
+   ```bash
+   ${CLAUDE_SKILL_DIR}/../trello/scripts/trello-boards.sh list-rename <list-id> "<preset list name>"
+   ${CLAUDE_SKILL_DIR}/../trello/scripts/trello-boards.sh list-create <board-id> "<preset list name>"
+   ```
+   `list-create` adds at the bottom, or at the top with `top`.
 3. **Agree the labels.** Ship no domain labels. Ask what the user's life is actually made of, in two tiers:
    - **entity labels** - their clients, employers, ventures, side projects
    - **domain labels** - their life areas
-   Plus one priority label. Cap the total at around fifteen; past that, labels stop being a filter.
+   Plus one priority label. Cap the total at around fifteen; past that, labels stop being a filter. Reuse any label the board already has, then create the rest. Each prints its id for the config.
+   ```bash
+   ${CLAUDE_SKILL_DIR}/../trello/scripts/trello-boards.sh labels <board-id>
+   ${CLAUDE_SKILL_DIR}/../trello/scripts/trello-boards.sh label-create <board-id> "<label name>" [colour]
+   ```
 4. **Set the caps.** Ask whether they want a cap on Today and In Progress. Caps are the main defence against silting, but an unwanted cap gets ignored and then the whole structure loses credibility. `null` means no cap, and that is a legitimate choice.
 5. **Write the config** to the path they choose.
 6. **Show the finished board** and state the three rules that keep it working (see the preset).
@@ -113,7 +123,11 @@ The short version:
 2. **Find the friction** - not everything that is undone, only what is *stuck*. Stale cards, multi-step cards with no checklist, silted lists, Dependant items nobody has chased, Long Burn cards with no ticks since last time.
 3. **Bring at most `max_findings_per_run`.** A list of forty problems is not motivating, it is paralysing. That is how the board got this way.
 4. **One thing at a time.** Ask a single question, wait, then the next. Never hand over a numbered list to answer at once.
-5. **Convert talk into cards.** Anything decided in the conversation gets written back - a chip ticked, a checklist added, a card moved, a title fixed. A coaching session that changes nothing on the board was a chat.
+5. **Convert talk into cards.** Anything decided in the conversation gets written back - a chip ticked, a checklist added, a card moved, a title fixed. A coaching session that changes nothing on the board was a chat. To tick a chip, read the card's checklists for the item id, then tick it:
+   ```bash
+   ${CLAUDE_SKILL_DIR}/../trello/scripts/trello-cards.sh checklist <card-id>
+   ${CLAUDE_SKILL_DIR}/../trello/scripts/trello-cards.sh checkitem-done <card-id> <item-id>
+   ```
 
 ### Breaking things down
 
@@ -143,7 +157,7 @@ Do not reimplement what already exists:
 
 - **`board-digest`** - status snapshot of a board. Use for the read-the-board step.
 - **`due-radar`** - what is due or overdue across boards. Use for deadline pressure.
-- **`trello`** - all board, list and card operations, and setup.
+- **`trello`** - all board, list and card operations, and setup. Every write this skill asks for has a verb there - never write a request of your own.
 
 ```bash
 ${CLAUDE_SKILL_DIR}/../trello/scripts/trello-cards.sh list-json <list-id>
