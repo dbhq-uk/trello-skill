@@ -34,31 +34,43 @@ jobs:
           done < <(find skills -name '*.sh')
           exit $fail
 
-      - name: Check SKILL.md frontmatter
+      # A real YAML parse, not a search for `name:` and `description:`. An
+      # unquoted `: ` inside a description makes the frontmatter invalid YAML
+      # with both keys still present, so a key search passes it, and Codex
+      # skips any skill whose frontmatter does not parse (openai/codex#8609).
+      # PyYAML is installed here, in CI only; the skills themselves need none.
+      - name: Every SKILL.md has frontmatter that parses as YAML
         run: |
+          python3 -m pip install --quiet --break-system-packages pyyaml
           python3 - <<'PY'
-          import sys, pathlib, re
+          import pathlib, re, sys, yaml
+          skills = sorted(pathlib.Path("skills").glob("*/SKILL.md"))
+          if not skills:
+              sys.exit("no skills/*/SKILL.md found")
           ok = True
-          for skill in sorted(pathlib.Path("skills").glob("*/SKILL.md")):
+          for skill in skills:
               text = skill.read_text(encoding="utf-8")
-              m = re.match(r"^---\n(.*?)\n---", text, re.S)
-              if not m:
-                  print(f"{skill}: missing YAML frontmatter"); ok = False; continue
-              fm = m.group(1)
-              name = re.search(r"^name:\s*(.+)$", fm, re.M)
-              desc = re.search(r"^description:\s*(.+)$", fm, re.M)
-              if not name:
-                  print(f"{skill}: missing 'name'"); ok = False
-              else:
-                  name = name.group(1).strip()
-                  if name != skill.parent.name:
-                      print(f"{skill}: name '{name}' != directory '{skill.parent.name}'"); ok = False
-                  if not re.fullmatch(r"[a-z0-9-]{1,64}", name):
-                      print(f"{skill}: name must be lowercase alphanumeric/hyphen, <=64 chars"); ok = False
-              if not desc:
-                  print(f"{skill}: missing 'description'"); ok = False
-              elif len(desc.group(1).strip()) > 1024:
-                  print(f"{skill}: description exceeds 1024 chars"); ok = False
+              match = re.match(r"^---\n(.*?)\n---\n", text, re.S)
+              if not match:
+                  print(f"{skill}: no frontmatter"); ok = False; continue
+              try:
+                  meta = yaml.safe_load(match.group(1))
+              except yaml.YAMLError as err:
+                  print(f"{skill}: frontmatter is not valid YAML: {err}"); ok = False; continue
+              if not isinstance(meta, dict):
+                  print(f"{skill}: frontmatter is not a mapping"); ok = False; continue
+              name, directory = meta.get("name"), skill.parent.name
+              if name != directory:
+                  print(f"{skill}: name is {name!r}, directory is {directory!r}"); ok = False
+              elif not re.fullmatch(r"[a-z0-9-]{1,64}", name):
+                  print(f"{skill}: name must be lowercase letters, digits and hyphens, at most 64"); ok = False
+              description = meta.get("description")
+              if not isinstance(description, str) or not description.strip():
+                  print(f"{skill}: description is missing or empty"); ok = False
+              elif len(description) > 1024:
+                  print(f"{skill}: description is {len(description)} characters, over 1024"); ok = False
+          if ok:
+              print(f"{len(skills)} SKILL.md file(s) OK")
           sys.exit(0 if ok else 1)
           PY
 
