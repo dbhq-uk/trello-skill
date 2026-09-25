@@ -183,7 +183,7 @@ command line, the shell history, or `ps` output.
 ```bash
 ${CLAUDE_SKILL_DIR}/scripts/life-board.sh config                 # show the resolved config path and contents
 ${CLAUDE_SKILL_DIR}/scripts/life-board.sh audit <board-id>       # unlabelled cards, stale cards, list sizes
-${CLAUDE_SKILL_DIR}/scripts/life-board.sh stale <list-id> <days> # cards untouched for N days
+${CLAUDE_SKILL_DIR}/scripts/life-board.sh stale <list-id> <days> # cards untouched for N days - a rename or a move does not count
 ${CLAUDE_SKILL_DIR}/scripts/life-board.sh sort <list-id> "<order>" [--apply]
 ```
 
@@ -206,11 +206,13 @@ Each entry is `Label` or `Label:emoji`, composed from `label_order` and `label_e
 
 Cards carrying a label that is not in the order sit after those that are; unlabelled cards sink to the bottom, where they stay visible as work still to do rather than hiding in the middle.
 
+`--apply` writes only what must change. A card keeps its place if it is already in order with its neighbours, and its title is written only when the stamp changes it, so a list that is already sorted gets no write at all. The dry run says how many cards `--apply` would move and rename. Every write is checked: the first one Trello refuses stops the run with a non-zero exit, names the card, and says the list is only partly sorted. Tell the user, fix the cause, and run `--apply` again to finish.
+
 ### Why stamp the emoji on the title
 
 A label colour is only legible once you already know the scheme, and on a phone it is a thin stripe. An emoji in the title survives every view, every export, and every search - the category travels with the card instead of living in the board's metadata.
 
-The stamp is idempotent: when a card is stamped, any emoji already leading its title is stripped before the new one goes on, so re-running never doubles up and a recategorised card picks up its new emoji automatically. Only titles that actually change are written. Only emoji are stripped - symbols are not. Currency, brackets, `` ` ``, `^`, `©`, `™` and `°` all stay: `£500 to pay` keeps its `£` and `©2026 renewal` keeps its `©`.
+The stamp is idempotent: when a card is stamped, any emoji already leading its title is stripped before the new one goes on, so re-running never doubles up and a recategorised card picks up its new emoji automatically. Only emoji are stripped - symbols are not. Currency, brackets, `` ` ``, `^`, `©`, `™` and `°` all stay: `£500 to pay` keeps its `£` and `©2026 renewal` keeps its `©`.
 
 Do not invent an emoji set. Ask the user, or offer suggestions they can veto - an emoji that means the wrong thing to them is worse than none, and they will be looking at it every day.
 

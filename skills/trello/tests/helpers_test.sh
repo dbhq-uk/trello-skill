@@ -418,7 +418,8 @@ export FAKE_BODY='[
 : > "$CURL_LOG"
 capture "$LIFE" sort L1 "Now:🔥,Health" --apply
 eq "sort --apply exits 0" "0" "$RC"
-put_for() { grep -F "/cards/$1?" "$CURL_LOG" || true; }
+# The PUT for one card, with or without a query string after its id.
+put_for() { grep -E "/cards/$1(\\?| |\$)" "$CURL_LOG" || true; }
 absent "sort leaves a Health card (no emoji in the order) untouched" "name=" "$(put_for C1)"
 absent "sort leaves an unlabelled card untouched" "name=" "$(put_for C2)"
 contains "sort still positions the untouched cards" "pos=" "$(put_for C2)"
@@ -443,6 +444,124 @@ export FAKE_BODY='[{"id":"C1","name":"❤ Book the dentist","labels":[{"name":"H
 capture "$LIFE" sort L1 "Health:❤" --apply
 absent "sort does not double a text-style stamp from the order" "name=" "$(put_for C1)"
 unset FAKE_BODY
+
+# sort --apply WRITES ONLY WHAT MUST CHANGE, AND CHECKS EVERY WRITE. It used
+# to send a PUT for every card on the list, whether or not its place or title
+# changed, and printed every line as done. Each write moves the card's
+# dateLastActivity and lands in the board's activity, so re-sorting a sorted
+# list made every card look fresh; and a write Trello refused part way through
+# left a half-sorted list with no word of which card it stopped at.
+export FAKE_BODY='[
+  {"id":"S1","name":"🔥 Alpha","pos":1000,"labels":[{"name":"Now"}]},
+  {"id":"S2","name":"🔥 Beta","pos":2000,"labels":[{"name":"Now"}]},
+  {"id":"S3","name":"Gamma","pos":3000,"labels":[{"name":"Health"}]},
+  {"id":"S4","name":"Delta","pos":4000,"labels":[]}
+]'
+: > "$CURL_LOG"
+capture "$LIFE" sort L1 "Now:🔥,Health" --apply
+eq "sort --apply on a sorted list exits 0" "0" "$RC"
+eq "sort --apply on a sorted list makes no write request" "0" "$(grep -c -- '-X PUT' "$CURL_LOG" || true)"
+contains "sort --apply on a sorted list says it wrote nothing" "nothing written" "$OUT"
+capture "$LIFE" sort L1 "Now:🔥,Health"
+contains "the dry run on a sorted list says --apply would write nothing" "would write nothing" "$OUT"
+
+# One card out of place is one write, into the gap, and no rename.
+export FAKE_BODY='[
+  {"id":"S1","name":"🔥 Alpha","pos":1000,"labels":[{"name":"Now"}]},
+  {"id":"S4","name":"Delta","pos":1500,"labels":[]},
+  {"id":"S2","name":"🔥 Beta","pos":2000,"labels":[{"name":"Now"}]},
+  {"id":"S3","name":"Gamma","pos":3000,"labels":[{"name":"Health"}]}
+]'
+: > "$CURL_LOG"
+capture "$LIFE" sort L1 "Now:🔥,Health" --apply
+eq "one card out of place is one write" "1" "$(grep -c -- '-X PUT' "$CURL_LOG" || true)"
+contains "the card out of place goes after the last card it follows" "/cards/S4?pos=4000" "$(put_for S4)"
+absent "moving a card does not rename it" "name=" "$(put_for S4)"
+contains "sort --apply counts what it wrote" "Wrote 1 of 4 cards: 1 moved, 0 renamed." "$OUT"
+capture "$LIFE" sort L1 "Now:🔥,Health"
+contains "the dry run counts what --apply would write" "--apply would write 1 of 4 cards: 1 to move, 0 to rename." "$OUT"
+
+# A card that belongs between two kept ones lands between them.
+export FAKE_BODY='[
+  {"id":"S2","name":"🔥 Beta","pos":1000,"labels":[{"name":"Now"}]},
+  {"id":"S1","name":"🔥 Alpha","pos":2000,"labels":[{"name":"Now"}]},
+  {"id":"S3","name":"Gamma","pos":3000,"labels":[{"name":"Health"}]}
+]'
+: > "$CURL_LOG"
+capture "$LIFE" sort L1 "Now:🔥,Health" --apply
+eq "a swapped pair is one write" "1" "$(grep -c -- '-X PUT' "$CURL_LOG" || true)"
+# Either card of the pair may be the one kept. Both answers put Alpha first.
+case "$(grep -- '-X PUT' "$CURL_LOG")" in
+    *"/cards/S1?pos=500"|*"/cards/S2?pos=2500") swap="into the gap" ;;
+    *) swap="$(grep -- '-X PUT' "$CURL_LOG")" ;;
+esac
+eq "the moved card goes into the gap beside its kept neighbour" "into the gap" "$swap"
+unset swap
+unset FAKE_BODY
+
+# A write Trello refuses stops the run, names the card and says the list is
+# only partly sorted. The fake answers the second card's PUT with a 500 once.
+export FAKE_DIR="$SANDBOX/sortfail"; mkdir -p "$FAKE_DIR"
+echo '[
+  {"id":"F1","name":"Zulu","pos":1000,"labels":[{"name":"Now"}]},
+  {"id":"F2","name":"Yankee","pos":2000,"labels":[{"name":"Now"}]},
+  {"id":"F3","name":"X-ray","pos":3000,"labels":[{"name":"Now"}]}
+]' > "$FAKE_DIR/lists_L1_cards.json"
+echo '500 Internal Server Error' > "$FAKE_DIR/cards_F2.status"
+: > "$CURL_LOG"
+capture "$LIFE" sort L1 "Now:🔥" --apply
+eq "a refused write makes sort --apply exit non-zero" "1" "$RC"
+contains "a refused write names the card sort stopped at" 'sort stopped at "Yankee" (F2)' "$ERR"
+contains "a refused write says the list is partly sorted" "only partly sorted" "$ERR"
+contains "a refused write passes on Trello's status" "HTTP 500" "$ERR"
+eq "sort --apply makes no write after the refused one" "" "$(put_for F1)"
+absent "sort --apply does not report the refused card as written" "Yankee" "$OUT"
+unset FAKE_DIR
+
+# stale IGNORES A RENAME OR A MOVE. Trello's dateLastActivity moves on both,
+# so straight after sort --apply every card on the list looked fresh. A card
+# now counts as touched only by an action that is more than a rename or a
+# position change.
+export FAKE_DIR="$SANDBOX/stale"; mkdir -p "$FAKE_DIR"
+new_id="$(printf '%08x' "$(command date +%s)")0000000000000000"
+recent="$(command date -u +%Y-%m-%dT%H:%M:%S.000Z)"
+cat > "$FAKE_DIR/lists_L1_cards.json" <<JSON
+[
+  {"id":"5f0000000000000000000001","name":"Only sorted","dateLastActivity":"$recent","idBoard":"B1"},
+  {"id":"5f0000000000000000000002","name":"Only renamed","dateLastActivity":"$recent","idBoard":"B1"},
+  {"id":"5f0000000000000000000003","name":"Commented","dateLastActivity":"$recent","idBoard":"B1"},
+  {"id":"5f0000000000000000000004","name":"New description","dateLastActivity":"$recent","idBoard":"B1"},
+  {"id":"5f0000000000000000000005","name":"Long idle","dateLastActivity":"2025-01-01T12:00:00.000Z","idBoard":"B1"},
+  {"id":"$new_id","name":"Just created","dateLastActivity":"$recent","idBoard":"B1"}
+]
+JSON
+cat > "$FAKE_DIR/boards_B1_actions.json" <<JSON
+[
+  {"id":"A1","type":"updateCard","date":"$recent","data":{"card":{"id":"5f0000000000000000000001"},"old":{"pos":1000}}},
+  {"id":"A2","type":"updateCard","date":"$recent","data":{"card":{"id":"5f0000000000000000000002"},"old":{"name":"x"}}},
+  {"id":"A3","type":"commentCard","date":"$recent","data":{"card":{"id":"5f0000000000000000000003"}}},
+  {"id":"A4","type":"updateCard","date":"$recent","data":{"card":{"id":"5f0000000000000000000004"},"old":{"desc":""}}}
+]
+JSON
+: > "$CURL_LOG"
+capture "$LIFE" stale L1 14
+eq "stale exits 0" "0" "$RC"
+contains "stale reads the board's actions since the cutoff" "/boards/B1/actions?since=" "$(cat "$CURL_LOG")"
+contains "stale counts a card that was only repositioned" "Only sorted" "$OUT"
+contains "stale counts a card that was only renamed" "Only renamed" "$OUT"
+contains "stale says a card touched only by a sort is idle since before the cutoff" "before " \
+   "$(printf '%s\n' "$OUT" | grep 'Only sorted')"
+absent "stale does not count a card with a new comment" "Commented" "$OUT"
+absent "stale does not count a card with a new description" "New description" "$OUT"
+absent "stale does not count a card created after the cutoff" "Just created" "$OUT"
+contains "stale still dates a card idle since before the cutoff" "  2025-01-01  Long idle" "$OUT"
+# When no card shows activity since the cutoff, no actions are fetched.
+echo '[{"id":"5f0000000000000000000005","name":"Long idle","dateLastActivity":"2025-01-01T12:00:00.000Z","idBoard":"B1"}]' \
+    > "$FAKE_DIR/lists_L1_cards.json"
+: > "$CURL_LOG"
+capture "$LIFE" stale L1 14
+absent "stale fetches no actions when every card is plainly idle" "/actions" "$(cat "$CURL_LOG")"
+unset FAKE_DIR new_id recent
 
 # NO CONFIG MEANS NO REQUEST, AND A MESSAGE THAT NAMES THE FIX. All five
 # scripts, because the first one an agent reaches for is the one a new user
