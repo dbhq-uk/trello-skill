@@ -322,6 +322,53 @@ eq "label-remove on a 2xx says so" "Label removed." "$OUT"
 eq "label-remove on a 2xx exits 0" "0" "$RC"
 unset FAKE_BODY FAKE_STATUS
 
+# life-board sort LEAVES TITLES ALONE UNLESS IT STAMPS THEM. It used to strip
+# a leading \p{So}/\p{Sk} run from every title and write the result, so with
+# the order "Now:🔥,Health" a Health card and an unlabelled card lost their
+# own emoji, and a stamped card lost a leading ` ^ © ™ or °. There is no undo
+# on Trello, so the writes are what is asserted: the exact name each PUT sends,
+# and that a card whose title should not change sends none.
+export FAKE_BODY='[
+  {"id":"C1","name":"🦷 Book the dentist","labels":[{"name":"Health"}]},
+  {"id":"C2","name":"🚗 MOT due","labels":[]},
+  {"id":"C3","name":"`make` fails","labels":[{"name":"Now"}]},
+  {"id":"C4","name":"^ raise","labels":[{"name":"Now"}]},
+  {"id":"C5","name":"©2026 renewal","labels":[{"name":"Now"}]},
+  {"id":"C6","name":"™ brand","labels":[{"name":"Now"}]},
+  {"id":"C7","name":"°C thermostat","labels":[{"name":"Now"}]},
+  {"id":"C8","name":"🔥 already stamped","labels":[{"name":"Now"}]},
+  {"id":"C9","name":"🏠 recategorised","labels":[{"name":"Now"}]},
+  {"id":"C10","name":"👩🏽‍💻 pair on it","labels":[{"name":"Now"}]}
+]'
+: > "$CURL_LOG"
+capture "$LIFE" sort L1 "Now:🔥,Health" --apply
+eq "sort --apply exits 0" "0" "$RC"
+put_for() { grep -F "/cards/$1?" "$CURL_LOG" || true; }
+absent "sort leaves a Health card (no emoji in the order) untouched" "name=" "$(put_for C1)"
+absent "sort leaves an unlabelled card untouched" "name=" "$(put_for C2)"
+contains "sort still positions the untouched cards" "pos=" "$(put_for C2)"
+contains "sort keeps a leading backtick" 'name=🔥 `make` fails' "$(put_for C3)"
+contains "sort keeps a leading ^" "name=🔥 ^ raise" "$(put_for C4)"
+contains "sort keeps a leading ©" "name=🔥 ©2026 renewal" "$(put_for C5)"
+contains "sort keeps a leading ™" "name=🔥 ™ brand" "$(put_for C6)"
+contains "sort keeps a leading °" "name=🔥 °C thermostat" "$(put_for C7)"
+absent "sort does not rewrite a title that already carries its stamp" "name=" "$(put_for C8)"
+contains "sort swaps an old emoji for the category's" "name=🔥 recategorised" "$(put_for C9)"
+contains "sort strips a whole emoji sequence, skin tone and joiner included" "name=🔥 pair on it" "$(put_for C10)"
+
+capture "$LIFE" sort L1 "Now:🔥,Health"
+contains "the dry run keeps the Health card's title" "🦷 Book the dentist" "$OUT"
+absent "the dry run proposes no rename for cards it leaves alone" "was: 🦷" "$OUT"
+absent "the dry run proposes no rename for the unlabelled card" "was: 🚗" "$OUT"
+
+# A stamp the regex does not know as emoji - U+2764 without U+FE0F - is still
+# recognised as this order's own, so a re-run never doubles it up.
+export FAKE_BODY='[{"id":"C1","name":"❤ Book the dentist","labels":[{"name":"Health"}]}]'
+: > "$CURL_LOG"
+capture "$LIFE" sort L1 "Health:❤" --apply
+absent "sort does not double a text-style stamp from the order" "name=" "$(put_for C1)"
+unset FAKE_BODY
+
 # NO CONFIG MEANS NO REQUEST, AND A MESSAGE THAT NAMES THE FIX. All five
 # scripts, because the first one an agent reaches for is the one a new user
 # meets.

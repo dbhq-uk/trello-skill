@@ -185,7 +185,7 @@ ${CLAUDE_SKILL_DIR}/scripts/life-board.sh sort <list-id> "Now:🔥,Health:❤️
 ${CLAUDE_SKILL_DIR}/scripts/life-board.sh sort <list-id> "Now:🔥,Health:❤️,Finance:💷,Home:🏠" --apply
 ```
 
-Each entry is `Label` or `Label:emoji`, composed from `label_order` and `label_emoji` in their config. An entry with no emoji leaves its cards' titles alone.
+Each entry is `Label` or `Label:emoji`, composed from `label_order` and `label_emoji` in their config. An entry with no emoji leaves its cards' titles alone, byte for byte, and so do cards with no label or a label outside the order.
 
 Cards carrying a label that is not in the order sit after those that are; unlabelled cards sink to the bottom, where they stay visible as work still to do rather than hiding in the middle.
 
@@ -193,7 +193,7 @@ Cards carrying a label that is not in the order sit after those that are; unlabe
 
 A label colour is only legible once you already know the scheme, and on a phone it is a thin stripe. An emoji in the title survives every view, every export, and every search - the category travels with the card instead of living in the board's metadata.
 
-The stamp is idempotent: any emoji already leading a title is stripped before the new one goes on, so re-running never doubles up and a recategorised card picks up its new emoji automatically. Only titles that actually change are written. Currency symbols and brackets are left alone - `£500 to pay` keeps its `£`.
+The stamp is idempotent: when a card is stamped, any emoji already leading its title is stripped before the new one goes on, so re-running never doubles up and a recategorised card picks up its new emoji automatically. Only titles that actually change are written. Only emoji are stripped - symbols are not. Currency, brackets, `` ` ``, `^`, `©`, `™` and `°` all stay: `£500 to pay` keeps its `£` and `©2026 renewal` keeps its `©`.
 
 Do not invent an emoji set. Ask the user, or offer suggestions they can veto - an emoji that means the wrong thing to them is worse than none, and they will be looking at it every day.
 

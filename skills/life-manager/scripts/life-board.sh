@@ -98,10 +98,16 @@ cmd_audit() {
 # still to do.
 #
 # The emoji is a prefix on the card title, so the category is readable on the
-# board itself rather than only in a label filter. Any emoji already leading the
-# title is stripped first, so re-running never doubles up and a recategorised
-# card picks up its new emoji. Currency symbols and brackets are deliberately
-# left alone - "£500 to pay" keeps its £.
+# board itself rather than only in a label filter. A card is renamed only when
+# its category has an emoji; every other title is left exactly as it is. When
+# it is renamed, any emoji already leading the title is stripped first, so
+# re-running never doubles up and a recategorised card picks up its new emoji.
+#
+# "Emoji" means emoji and nothing wider: a code point that shows as emoji by
+# default, one made emoji by U+FE0F, the joiners and skin tones that build a
+# sequence, and any emoji named in the order itself. Not the whole Unicode
+# symbol classes, which also hold ` ^ © ™ ° and £ - "£500 to pay" keeps its £,
+# "©2026 renewal" keeps its ©, and "`make` fails" keeps its backtick.
 #
 # Dry run by default. Writes only with --apply.
 cmd_sort() {
@@ -126,7 +132,15 @@ cmd_sort() {
 
     local plan
     plan=$(api_get "/lists/$list_id/cards" "fields=name,labels" | jq -r --argjson ord "$order_json" '
+        # Strip a leading run of emoji and the whitespace around it. Repeats
+        # until nothing changes, so a stamp this order uses is removed even if
+        # it is not in the regex (a bare U+2764 with no U+FE0F, say).
+        def strip_emoji($stamps):
+            sub("^(?:\\p{Emoji_Presentation}|\\p{Extended_Pictographic}\\x{FE0F}|[\\x{FE0F}\\x{200D}\\x{20E3}\\x{E0020}-\\x{E007F}]|\\s)+"; "") as $s
+            | ([$stamps[] | select(. as $e | $s | startswith($e))] | first) as $hit
+            | if $hit == null then $s else ($s | ltrimstr($hit) | strip_emoji($stamps)) end;
         ($ord | map(.n)) as $names
+        | ($ord | map(.e) | map(select(length > 0))) as $stamps
         | [ .[]
             | ( [.labels[].name] | map(. as $n | $names | index($n)) | map(select(. != null)) | min ) as $rank
             | { id,
@@ -134,8 +148,8 @@ cmd_sort() {
                 lab: ([.labels[].name] | join(", ")),
                 cat: ( $rank // (if (.labels | length) > 0 then 900 else 999 end) ),
                 emo: ( if $rank == null then "" else ($ord[$rank].e) end ),
-                bare: (.name | sub("^[\\p{So}\\p{Sk}\\p{Cf}\\p{Mn}\\s]+"; "")) } ]
-        | map(. + { new: (if .emo == "" then .bare else "\(.emo) \(.bare)" end) })
+                bare: (.name | strip_emoji($stamps)) } ]
+        | map(. + { new: (if .emo == "" then .old else "\(.emo) \(.bare)" end) })
         | sort_by(.cat, (.bare | ascii_downcase))
         | to_entries[]
         | "\(.value.id)\t\((.key + 1) * 1000)\t\(if .value.lab == "" then "-" else .value.lab end)\t\(.value.new)\t\(.value.old)"')
