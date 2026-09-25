@@ -25,8 +25,13 @@ An API key and token, which you create yourself at Trello and paste into
 - Stored at `~/.dbhq/trello/config.json`
 - The file is set to `600` (owner read/write only) immediately after it is
   written
-- They are never transmitted anywhere except `api.trello.com`, as query
-  parameters, which is the authentication method Trello's API requires
+- They are never transmitted anywhere except `api.trello.com`, in an
+  `Authorization: OAuth oauth_consumer_key="...", oauth_token="..."` header,
+  one of the two methods Trello's API accepts
+- That header is fed to `curl` on stdin, so the key and token are never curl
+  arguments. Another local user can read any running process's arguments from
+  `ps` or `/proc/<pid>/cmdline`, and a token in the URL would be on show there
+  for as long as each request runs
 
 **Revoking access:** the token is yours, issued by Trello. Revoke it at
 <https://trello.com/my/account> under connected applications, and this skill
@@ -53,6 +58,10 @@ default `644`. It is then `chmod 600`, and `~/.dbhq/trello` is set to `700`.
 
 An earlier version chmod'd only after the write, leaving a short window in which
 another local user on a shared host could read the token. That window is closed.
+
+The same user could once read the token from the process list, because every
+request put it in the URL. Since the header change above, it is not there
+either.
 
 ## Note on automated scanners
 

@@ -63,8 +63,8 @@ whole skill directory is symlinked untouched, while Codex does not, so its
 
 ## Requirements
 
-`jq` and `curl`, which is the whole of it - these are bash skills against
-the Trello REST API.
+`jq` and `curl` (7.55 or later, which reads a header from stdin), which is
+the whole of it - these are bash skills against the Trello REST API.
 
 A Trello API key and token, kept in `~/.dbhq/trello/config.json` at mode
 600. `trello-setup.sh` walks you through getting them.

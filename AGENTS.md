@@ -45,11 +45,14 @@ claude plugin validate .                   # manifest + structure
 
 The suite runs offline: a fake `curl` on `PATH` and a fixture `$HOME`, so it
 needs no API key, no Trello account and makes no request. CI runs it on every
-push. Three things in it are not tidiness and should not be weakened:
+push. These things in it are not tidiness and should not be weakened:
 
 - **Every request goes to `https://api.trello.com/1` and nowhere else.** The
-  key and token are in the query string of every call, so a request built
+  key and token are in the Authorization header of every call, so a request built
   against the wrong host hands a Trello token to that host.
+- **The key and token never appear in curl's arguments.** They go in an
+  `Authorization: OAuth` header that curl reads from stdin (`-H @-`). Anything
+  in argv, a URL included, is readable by every local user through `ps`.
 - **Caller text goes out with `--data-urlencode`, never `-d`.** `curl` sends
   `-d` raw: an `&` in a card title truncates the value and a `+` arrives as a
   space.
