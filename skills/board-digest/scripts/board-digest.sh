@@ -51,7 +51,7 @@ case "$cmd" in
         TOTAL=$(echo "$CARDS" | jq 'length')
 
         echo "=== $NAME ==="
-        echo "Status as of $(date -u +'%Y-%m-%d %H:%M UTC') - $TOTAL open cards"
+        echo "Status as of $(local_now) - $TOTAL open cards, times are local"
         echo
 
         echo "## Lists"
@@ -63,20 +63,20 @@ case "$cmd" in
         done
 
         echo "## Due & overdue"
-        DUE=$(echo "$CARDS" | jq -r --argjson now "$NOW" --argjson soon "$SOON" '
+        DUE=$(echo "$CARDS" | jq -r --argjson now "$NOW" --argjson soon "$SOON" "$(trello_jq_defs)"'
             .[]
             | select(.due != null and (.dueComplete | not))
             | (.due | sub("\\..*Z"; "Z") | fromdateiso8601) as $d
             | select($d <= $soon)
-            | "\($d)\t\(if $d < $now then "OVERDUE " else "due soon" end)\t\(.name)\t\(.due[0:10])"
+            | "\($d)\t\(if $d < $now then "OVERDUE " else "due soon" end)\t\(.name)\t\(.due | local_time)"
             ' | sort | awk -F'\t' '{printf "  - %s: %s (%s)\n", $2, $3, $4}')
         if [ -n "$DUE" ]; then echo "$DUE"; else echo "  (nothing due in the next 3 days)"; fi
         echo
 
         echo "## Recent activity (last $DAYS days)"
-        ACT=$(echo "$ACTIONS" | jq -r '
+        ACT=$(echo "$ACTIONS" | jq -r "$(trello_jq_defs)"'
             .[]
-            | (.date[0:10]) as $d
+            | (.date | local_date) as $d
             | if .type == "createCard" then "  - \($d) created: \(.data.card.name)"
               elif .type == "commentCard" then "  - \($d) comment on: \(.data.card.name)"
               elif (.type == "updateCard" and (.data.listBefore != null) and (.data.listAfter != null))

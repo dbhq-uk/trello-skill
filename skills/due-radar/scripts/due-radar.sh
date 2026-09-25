@@ -25,12 +25,12 @@ render() {
     window=$((now + days * 86400))
 
     local rows
-    rows=$(echo "$cards" | jq -r --argjson now "$now" --argjson window "$window" '
+    rows=$(echo "$cards" | jq -r --argjson now "$now" --argjson window "$window" "$(trello_jq_defs)"'
         map(. + {epoch: (.due | sub("\\..*Z"; "Z") | fromdateiso8601)})
         | map(select(.epoch < $now or .epoch <= $window))
         | sort_by(.epoch)
         | .[]
-        | "\(if .epoch < $now then "OVERDUE" else .due[0:10] end)\t\(.name)\t\(.board)"')
+        | "\(if .epoch < $now then "OVERDUE" else (.due | local_time) end)\t\(.name)\t\(.board)"')
 
     if [ -z "$rows" ]; then
         echo "  (nothing overdue or due in the next $days days)"
@@ -42,7 +42,7 @@ render() {
     soon=$(echo "$rows" | grep -vc '^OVERDUE' || true)
     echo "  $overdue overdue, $soon upcoming (next $days days)"
     echo
-    echo "$rows" | awk -F'\t' '{printf "  %-10s  %-50s  [%s]\n", $1, $2, $3}'
+    echo "$rows" | awk -F'\t' '{printf "  %-16s  %-50s  [%s]\n", $1, $2, $3}'
 }
 
 usage() {
@@ -92,7 +92,7 @@ case "$cmd" in
         fi
 
         echo "=== Due radar - all boards ==="
-        echo "As of $(date -u +'%Y-%m-%d %H:%M UTC')"
+        echo "As of $(local_now) - times are local"
         echo
         render "$CARDS" "$DAYS"
 
@@ -118,7 +118,7 @@ case "$cmd" in
             | jq --arg b "$BNAME" '[.[] | select(.due != null and (.dueComplete | not)) | {name, due, url, board: $b}]')
 
         echo "=== Due radar - $BNAME ==="
-        echo "As of $(date -u +'%Y-%m-%d %H:%M UTC')"
+        echo "As of $(local_now) - times are local"
         echo
         render "$CARDS" "$DAYS"
         ;;

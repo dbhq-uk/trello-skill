@@ -81,6 +81,21 @@ ${CLAUDE_SKILL_DIR}/scripts/trello-cards.sh update <card-id> name "New title"
 ${CLAUDE_SKILL_DIR}/scripts/trello-cards.sh move <card-id> <list-id>
 ```
 
+### Due dates
+
+Trello stores every due date in UTC. The scripts show it in the user's local time: `read` prints `Due: 2026-09-26 00:30 local time (2026-09-25T23:30:00.000Z)`, and due-radar and board-digest show local date and time with the zone named once in the header.
+
+**Always write a due date as a full ISO 8601 time with an offset.** Never a bare day: that leaves the hour and the zone to Trello. When the user gives only a day, use 09:00 their local time. Get the offset from their machine rather than guessing it, because it changes with summer time:
+
+```bash
+# GNU date (Linux): prints 2026-09-26T09:00:00+01:00 in UK summer time
+date -d '2026-09-26 09:00' --iso-8601=seconds
+
+${CLAUDE_SKILL_DIR}/scripts/trello-cards.sh update <card-id> due "2026-09-26T09:00:00+01:00"
+```
+
+On macOS, `date -j -f '%Y-%m-%d %H:%M' '2026-09-26 09:00' +%Y-%m-%dT%H:%M:%S%z` gives the same time with the offset as `+0100`; write it as `+01:00`. After setting a due date, `read` the card and check the local time it shows is the one the user asked for.
+
 ### Positioning Cards
 
 ```bash

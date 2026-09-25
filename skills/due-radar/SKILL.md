@@ -42,3 +42,4 @@ All overdue cards are always shown; the day window only limits how far ahead upc
 - "all" scans each open board you can see, so on a very large account it makes one request per board. Use `board <id>` to scope to one board when you only care about that.
 - A rate-limited request is retried three times before it counts as a failure. A board that still cannot be read is named after the results under "Incomplete", with Trello's reason on stderr, and the script exits 1. Tell the user which boards the radar does not cover - never report "nothing due" for them.
 - Due dates and completion come straight from Trello; overdue means the due time has passed and the card is not marked complete.
+- Due times are shown as date and time in the user's local time zone, which the header names. Trello stores UTC, so near midnight the local day can differ from the UTC one; trust the script's date.

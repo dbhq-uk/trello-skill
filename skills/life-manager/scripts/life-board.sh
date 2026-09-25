@@ -54,10 +54,10 @@ cmd_stale() {
     [ -z "$list_id" ] && { echo "Usage: life-board.sh stale <list-id> [days]" >&2; exit 1; }
     cutoff=$(days_ago_iso "$days")
     api_get_all "/lists/$list_id/cards" "fields=name,dateLastActivity" \
-        | jq -r --arg c "$cutoff" '
+        | jq -r --arg c "$cutoff" "$(trello_jq_defs)"'
             [.[] | select(.dateLastActivity < $c)]
             | if length == 0 then "  (nothing stale)"
-              else .[] | "  \(.dateLastActivity[0:10])  \(.name)" end'
+              else .[] | "  \(.dateLastActivity | local_date)  \(.name)" end'
 }
 
 cmd_audit() {
