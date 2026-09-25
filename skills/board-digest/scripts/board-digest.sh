@@ -16,6 +16,17 @@ fi
 . "$TRELLO_LIB"
 trello_load_config
 
+usage() {
+    echo "Trello Board Digest"
+    echo
+    echo "Usage: board-digest.sh digest <board-id> [days]"
+    echo
+    echo "  digest <board-id> [days]   Status snapshot: lists, due/overdue, recent activity"
+    echo "                             (days = recent-activity window, default 7)"
+    echo
+    echo "Find a board id with: trello-boards.sh find \"<name>\""
+}
+
 cmd="${1:-digest}"
 
 case "$cmd" in
@@ -77,14 +88,15 @@ case "$cmd" in
         if [ -n "$ACT" ]; then echo "$ACT"; else echo "  (no tracked activity in this window)"; fi
         ;;
 
+    help|-h|--help)
+        usage
+        ;;
+
     *)
-        echo "Trello Board Digest"
-        echo
-        echo "Usage: board-digest.sh digest <board-id> [days]"
-        echo
-        echo "  digest <board-id> [days]   Status snapshot: lists, due/overdue, recent activity"
-        echo "                             (days = recent-activity window, default 7)"
-        echo
-        echo "Find a board id with: trello-boards.sh find \"<name>\""
+        # An unknown verb is an error, not a request for help: usage goes to
+        # stderr and the exit code is 2, so an agent cannot read the usage
+        # text as a result.
+        usage >&2
+        exit 2
         ;;
 esac
