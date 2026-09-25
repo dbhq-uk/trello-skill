@@ -62,14 +62,19 @@ case "$cmd" in
             echo
         done
 
+        # Each row names its list. A card in a done list (see is_done_list in
+        # lib.sh) is finished work whose due date was never ticked, so it is
+        # labelled as that rather than OVERDUE.
         echo "## Due & overdue"
-        DUE=$(echo "$CARDS" | jq -r --argjson now "$NOW" --argjson soon "$SOON" "$(trello_jq_defs)"'
-            .[]
+        DUE=$(echo "$CARDS" | jq -r --argjson now "$NOW" --argjson soon "$SOON" --argjson lists "$LISTS" "$(trello_jq_defs)"'
+            ($lists | map({(.id): .name}) | add // {}) as $ln
+            | .[]
             | select(.due != null and (.dueComplete | not))
             | (.due | sub("\\..*Z"; "Z") | fromdateiso8601) as $d
             | select($d <= $soon)
-            | "\($d)\t\(if $d < $now then "OVERDUE " else "due soon" end)\t\(.name)\t\(.due | local_time)"
-            ' | sort | awk -F'\t' '{printf "  - %s: %s (%s)\n", $2, $3, $4}')
+            | ($ln[.idList // ""] // "?") as $l
+            | "\($d)\t\(if ($l | is_done_list) then "in \($l), due not ticked" elif $d < $now then "OVERDUE " else "due soon" end)\t\(.name)\t\(.due | local_time)\t\($l)"
+            ' | sort | awk -F'\t' '{printf "  - %s: %s (%s) [%s]\n", $2, $3, $4, $5}')
         if [ -n "$DUE" ]; then echo "$DUE"; else echo "  (nothing due in the next 3 days)"; fi
         echo
 

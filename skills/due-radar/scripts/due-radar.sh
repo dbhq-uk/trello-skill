@@ -16,8 +16,12 @@ fi
 trello_load_config
 
 # Print a combined, annotated, sorted due list from a JSON array of
-# {name, due, url, board} objects. Always shows all overdue, plus anything
-# due within the window (days).
+# {name, due, url, board, list, done} objects. Always shows all overdue, plus
+# anything due within the window (days). Each row names its board and list.
+#
+# A card in a done list (done: true) is finished work whose due date was never
+# ticked. It is not overdue and not upcoming, so it is counted in neither and
+# shown apart, after the rest, with its date rather than OVERDUE.
 render() {
     local cards="$1" days="$2"
     local now window
@@ -30,19 +34,42 @@ render() {
         | map(select(.epoch < $now or .epoch <= $window))
         | sort_by(.epoch)
         | .[]
-        | "\(if .epoch < $now then "OVERDUE" else (.due | local_time) end)\t\(.name)\t\(.board)"')
+        | "\(if .done then "DONE" elif .epoch < $now then "OVERDUE" else "SOON" end)\t\(if .epoch < $now and (.done | not) then "OVERDUE" else (.due | local_time) end)\t\(.name)\t\(.board)\(if (.list // "") != "" then " / \(.list)" else "" end)"')
 
     if [ -z "$rows" ]; then
         echo "  (nothing overdue or due in the next $days days)"
         return
     fi
 
-    local overdue soon
+    local overdue soon done_rows
     overdue=$(echo "$rows" | grep -c '^OVERDUE' || true)
-    soon=$(echo "$rows" | grep -vc '^OVERDUE' || true)
+    soon=$(echo "$rows" | grep -c '^SOON' || true)
+    done_rows=$(echo "$rows" | grep '^DONE' || true)
     echo "  $overdue overdue, $soon upcoming (next $days days)"
     echo
-    echo "$rows" | awk -F'\t' '{printf "  %-16s  %-50s  [%s]\n", $1, $2, $3}'
+    echo "$rows" | grep -v '^DONE' | awk -F'\t' '{printf "  %-16s  %-50s  [%s]\n", $2, $3, $4}' || true
+    if [ -n "$done_rows" ]; then
+        echo
+        echo "  $(echo "$done_rows" | grep -c .) in a done list with the due date not ticked - not counted above:"
+        echo "$done_rows" | awk -F'\t' '{printf "  %-16s  %-50s  [%s]\n", $2, $3, $4}'
+    fi
+}
+
+# The due, unticked cards on one board as a JSON array for render, each with
+# its list's name and whether that list is a done list. Returns 1 if Trello
+# could not be read. The board's lists are fetched only when there is a due
+# card to name, so a board with none still costs one request.
+board_due_cards() {
+    local bid="$1" bname="$2" cards lists='[]'
+    cards=$(api_get_all "/boards/$bid/cards" "fields=name,due,dueComplete,url,idList" \
+        | jq '[.[] | select(.due != null and (.dueComplete | not))]') || return 1
+    if [ "$(jq 'length' <<< "$cards")" -gt 0 ]; then
+        lists=$(api_get "/boards/$bid/lists" "fields=name&filter=all") || return 1
+    fi
+    jq --arg b "$bname" --argjson lists "$lists" "$(trello_jq_defs)"'
+        ($lists | map({(.id): .name}) | add // {}) as $ln
+        | [.[] | ($ln[.idList // ""] // "") as $l
+               | {name, due, url, board: $b, list: $l, done: ($l | is_done_list)}]' <<< "$cards"
 }
 
 usage() {
@@ -78,9 +105,7 @@ case "$cmd" in
         n=0
         while IFS=$'\t' read -r bid bname; do
             n=$((n + 1))
-            if ! api_get_all "/boards/$bid/cards" "fields=name,due,dueComplete,url" > "$TMP/$n.raw" \
-                || ! jq --arg b "$bname" '[.[] | select(.due != null and (.dueComplete | not)) | {name, due, url, board: $b}]' \
-                    "$TMP/$n.raw" > "$TMP/$n.json"; then
+            if ! board_due_cards "$bid" "$bname" > "$TMP/$n.json"; then
                 rm -f "$TMP/$n.json"
                 printf '%s\n' "$bname" >> "$TMP/failed"
             fi
@@ -114,8 +139,7 @@ case "$cmd" in
         fi
         BOARD=$(api_get "/boards/$BOARD_ID" "fields=name")
         BNAME=$(echo "$BOARD" | jq -r '.name // "board"')
-        CARDS=$(api_get_all "/boards/$BOARD_ID/cards" "fields=name,due,dueComplete,url" \
-            | jq --arg b "$BNAME" '[.[] | select(.due != null and (.dueComplete | not)) | {name, due, url, board: $b}]')
+        CARDS=$(board_due_cards "$BOARD_ID" "$BNAME")
 
         echo "=== Due radar - $BNAME ==="
         echo "As of $(local_now) - times are local"
