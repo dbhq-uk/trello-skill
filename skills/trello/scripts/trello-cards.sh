@@ -17,7 +17,7 @@ usage() {
     echo "Usage: trello-cards.sh <command> [args]"
     echo
     echo "Listing:"
-    echo "  list <list-id> [count]      List cards in a list"
+    echo "  list <list-id> [count]      List the first [count] cards in a list (default 50)"
     echo "  list-json <list-id>         List cards as JSON (for scripting)"
     echo "  read <card-id>              Read full card details"
     echo
@@ -62,12 +62,21 @@ case "$1" in
             exit 1
         fi
 
+        # Fetches the whole list and shows the first <count> in list order.
+        # When that leaves cards out, the last line says how many, so a cut
+        # list never reads as the whole one. Trello does not document a limit
+        # on this endpoint, so the count is applied here rather than sent.
         LIST_ID="$2"
         COUNT="${3:-50}"
-        RESPONSE=$(api_get "/lists/$LIST_ID/cards" "fields=name,id,desc,pos,labels&limit=$COUNT")
+        case "$COUNT" in
+            ''|*[!0-9]*) echo "Usage: trello-cards.sh list <list-id> [count] - count must be a number" >&2; exit 1 ;;
+        esac
+        RESPONSE=$(api_get_all "/lists/$LIST_ID/cards" "fields=name,id,desc,pos,labels")
 
-        echo "$RESPONSE" | jq -r 'if length == 0 then "No cards found."
-            else .[] | "[\(.id)] \(.name)\(.desc | if . != "" then " - " + (. | split("\n")[0] | .[0:50]) else "" end)" end'
+        echo "$RESPONSE" | jq -r --argjson n "$COUNT" 'sort_by(.pos)
+            | if length == 0 then "No cards found."
+              else (.[0:$n][] | "[\(.id)] \(.name)\(.desc | if . != "" then " - " + (. | split("\n")[0] | .[0:50]) else "" end)"),
+                   (if length > $n then "(showing \($n) of \(length) cards - pass a larger count to see the rest)" else empty end) end'
         ;;
 
     list-json)
@@ -78,9 +87,9 @@ case "$1" in
         fi
 
         LIST_ID="$2"
-        RESPONSE=$(api_get "/lists/$LIST_ID/cards" "fields=name,id,desc,pos,labels")
+        RESPONSE=$(api_get_all "/lists/$LIST_ID/cards" "fields=name,id,desc,pos,labels")
 
-        echo "$RESPONSE" | jq '.'
+        echo "$RESPONSE" | jq 'sort_by(.pos)'
         ;;
 
     read)
@@ -170,7 +179,7 @@ case "$1" in
         fi
 
         CARD_ID="$2"
-        RESPONSE=$(api_get "/cards/$CARD_ID/actions" "filter=commentCard")
+        RESPONSE=$(api_get_all "/cards/$CARD_ID/actions" "filter=commentCard")
 
         echo "$RESPONSE" | jq -r 'if length == 0 then "No comments found."
             else .[] | "[\(.date | split("T")[0])] \(.memberCreator.fullName // "Unknown"): \(.data.text)" end'

@@ -42,9 +42,9 @@ case "$cmd" in
         NAME=$(echo "$BOARD" | jq -r '.name // "Unknown board"')
 
         LISTS=$(api_get "/boards/$BOARD_ID/lists" "fields=name,id&cards=none")
-        CARDS=$(api_get "/boards/$BOARD_ID/cards" "fields=name,idList,due,dueComplete,labels,dateLastActivity&limit=1000")
+        CARDS=$(api_get_all "/boards/$BOARD_ID/cards" "fields=name,idList,due,dueComplete,labels,dateLastActivity")
         SINCE=$(days_ago_iso "$DAYS")
-        ACTIONS=$(api_get "/boards/$BOARD_ID/actions" "filter=createCard,commentCard,updateCard&limit=50&since=$SINCE")
+        ACTIONS=$(api_get_all "/boards/$BOARD_ID/actions" "filter=createCard,commentCard,updateCard&since=$SINCE")
 
         NOW=$(date -u +%s)
         SOON=$((NOW + 3 * 86400))

@@ -70,7 +70,7 @@ case "$cmd" in
         TMP=$(mktemp -d)
         trap 'rm -rf "$TMP"' EXIT
         echo "$BOARDS" | jq -r '.[] | "\(.id)\t\(.name)"' | while IFS=$'\t' read -r bid bname; do
-            api_get "/boards/$bid/cards" "fields=name,due,dueComplete,url&limit=1000" \
+            api_get_all "/boards/$bid/cards" "fields=name,due,dueComplete,url" \
                 | jq --arg b "$bname" '[.[] | select(.due != null and (.dueComplete | not)) | {name, due, url, board: $b}]' \
                 > "$TMP/$bid.json" 2>/dev/null || echo '[]' > "$TMP/$bid.json"
         done
@@ -91,7 +91,7 @@ case "$cmd" in
         fi
         BOARD=$(api_get "/boards/$BOARD_ID" "fields=name")
         BNAME=$(echo "$BOARD" | jq -r '.name // "board"')
-        CARDS=$(api_get "/boards/$BOARD_ID/cards" "fields=name,due,dueComplete,url&limit=1000" \
+        CARDS=$(api_get_all "/boards/$BOARD_ID/cards" "fields=name,due,dueComplete,url" \
             | jq --arg b "$BNAME" '[.[] | select(.due != null and (.dueComplete | not)) | {name, due, url, board: $b}]')
 
         echo "=== Due radar - $BNAME ==="

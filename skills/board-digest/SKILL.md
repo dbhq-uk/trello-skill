@@ -49,5 +49,5 @@ The script gives you the raw structure. Add value on top:
 
 ## Notes
 
-- Recent activity uses the Trello actions feed, which surfaces card creation, moves between lists, comments, and updates within the chosen window.
+- Recent activity uses the Trello actions feed, which surfaces card creation, moves between lists, comments, and updates within the chosen window. Every action in the window is fetched, page by page; if it was ever cut short, stderr says "capped at N" and the digest must say it is partial.
 - Due-date detection ignores cards already marked complete, and highlights anything due within three days as "due soon".
