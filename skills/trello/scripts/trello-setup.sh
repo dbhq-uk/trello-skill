@@ -55,19 +55,14 @@ fi
 echo
 echo "Testing credentials..."
 
-RESPONSE=$(api_get "/members/me")
-
-if echo "$RESPONSE" | jq -e '.id' > /dev/null 2>&1; then
-    USERNAME=$(echo "$RESPONSE" | jq -r '.username')
-    FULLNAME=$(echo "$RESPONSE" | jq -r '.fullName')
-    echo "Success! Connected as: $FULLNAME (@$USERNAME)"
-else
-    echo "Error: Invalid credentials."
-    if echo "$RESPONSE" | jq -e '.message' > /dev/null 2>&1; then
-        echo "$RESPONSE" | jq -r '.message'
-    fi
+# api() has already printed Trello's status and message if this fails.
+if ! RESPONSE=$(api_get "/members/me"); then
+    echo "Error: Trello did not accept these credentials." >&2
     exit 1
 fi
+USERNAME=$(echo "$RESPONSE" | jq -r '.username')
+FULLNAME=$(echo "$RESPONSE" | jq -r '.fullName')
+echo "Success! Connected as: $FULLNAME (@$USERNAME)"
 
 # Save configuration
 mkdir -p "$CONFIG_DIR"

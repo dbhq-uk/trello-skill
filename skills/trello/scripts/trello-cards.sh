@@ -1,5 +1,9 @@
 #!/bin/bash
 # Trello Cards Operations
+#
+# Every request goes through api() in lib.sh, which stops the script with
+# Trello's own message on any non-2xx answer. So each verb below only has to
+# handle success - and "nothing found" is printed only for a real empty result.
 
 set -e
 
@@ -19,15 +23,8 @@ case "$1" in
         COUNT="${3:-50}"
         RESPONSE=$(api_get "/lists/$LIST_ID/cards" "fields=name,id,desc,pos,labels&limit=$COUNT")
 
-        if echo "$RESPONSE" | jq -e '.[0].id' > /dev/null 2>&1; then
-            echo "$RESPONSE" | jq -r '.[] | "[\(.id)] \(.name)\(.desc | if . != "" then " - " + (. | split("\n")[0] | .[0:50]) else "" end)"'
-        elif echo "$RESPONSE" | jq -e '.message' > /dev/null 2>&1; then
-            echo "Error:"
-            echo "$RESPONSE" | jq -r '.message'
-            exit 1
-        else
-            echo "No cards found."
-        fi
+        echo "$RESPONSE" | jq -r 'if length == 0 then "No cards found."
+            else .[] | "[\(.id)] \(.name)\(.desc | if . != "" then " - " + (. | split("\n")[0] | .[0:50]) else "" end)" end'
         ;;
 
     list-json)
@@ -53,13 +50,7 @@ case "$1" in
         CARD_ID="$2"
         RESPONSE=$(api_get "/cards/$CARD_ID" "fields=name,id,desc,pos,url,labels,idList,due,dueComplete")
 
-        if echo "$RESPONSE" | jq -e '.id' > /dev/null 2>&1; then
-            echo "$RESPONSE" | jq -r '"Card: \(.name)\nID: \(.id)\nPosition: \(.pos)\nList ID: \(.idList)\nURL: \(.url)\nDue: \(.due // "None")\nDue Complete: \(.dueComplete)\n\nDescription:\n\(.desc // "None")\n\nLabels: \(if .labels | length > 0 then [.labels[].name] | join(", ") else "None" end)"'
-        else
-            echo "Error:"
-            echo "$RESPONSE" | jq -r '.message // .'
-            exit 1
-        fi
+        echo "$RESPONSE" | jq -r '"Card: \(.name)\nID: \(.id)\nPosition: \(.pos)\nList ID: \(.idList)\nURL: \(.url)\nDue: \(.due // "None")\nDue Complete: \(.dueComplete)\n\nDescription:\n\(.desc // "None")\n\nLabels: \(if .labels | length > 0 then [.labels[].name] | join(", ") else "None" end)"'
         ;;
 
     create)
@@ -76,14 +67,8 @@ case "$1" in
         RESPONSE=$(api_post "/cards" -d "idList=$LIST_ID" \
             --data-urlencode "name=$TITLE" --data-urlencode "desc=$DESC")
 
-        if echo "$RESPONSE" | jq -e '.id' > /dev/null 2>&1; then
-            echo "Card created:"
-            echo "$RESPONSE" | jq -r '"[\(.id)] \(.name)"'
-        else
-            echo "Error creating card:"
-            echo "$RESPONSE" | jq -r '.message // .'
-            exit 1
-        fi
+        echo "Card created:"
+        echo "$RESPONSE" | jq -r '"[\(.id)] \(.name)"'
         ;;
 
     update)
@@ -100,14 +85,8 @@ case "$1" in
 
         RESPONSE=$(api_put "/cards/$CARD_ID" --data-urlencode "$FIELD=$VALUE")
 
-        if echo "$RESPONSE" | jq -e '.id' > /dev/null 2>&1; then
-            echo "Card updated:"
-            echo "$RESPONSE" | jq -r '"[\(.id)] \(.name)"'
-        else
-            echo "Error updating card:"
-            echo "$RESPONSE" | jq -r '.message // .'
-            exit 1
-        fi
+        echo "Card updated:"
+        echo "$RESPONSE" | jq -r '"[\(.id)] \(.name)"'
         ;;
 
     move)
@@ -122,14 +101,8 @@ case "$1" in
 
         RESPONSE=$(api_put "/cards/$CARD_ID" -d "idList=$LIST_ID")
 
-        if echo "$RESPONSE" | jq -e '.id' > /dev/null 2>&1; then
-            echo "Card moved:"
-            echo "$RESPONSE" | jq -r '"[\(.id)] \(.name) -> List: \(.idList)"'
-        else
-            echo "Error moving card:"
-            echo "$RESPONSE" | jq -r '.message // .'
-            exit 1
-        fi
+        echo "Card moved:"
+        echo "$RESPONSE" | jq -r '"[\(.id)] \(.name) -> List: \(.idList)"'
         ;;
 
     comment)
@@ -142,15 +115,8 @@ case "$1" in
         CARD_ID="$2"
         TEXT="$3"
 
-        RESPONSE=$(api_post "/cards/$CARD_ID/actions/comments" --data-urlencode "text=$TEXT")
-
-        if echo "$RESPONSE" | jq -e '.id' > /dev/null 2>&1; then
-            echo "Comment added."
-        else
-            echo "Error adding comment:"
-            echo "$RESPONSE" | jq -r '.message // .'
-            exit 1
-        fi
+        api_post "/cards/$CARD_ID/actions/comments" --data-urlencode "text=$TEXT" > /dev/null
+        echo "Comment added."
         ;;
 
     comments)
@@ -163,15 +129,8 @@ case "$1" in
         CARD_ID="$2"
         RESPONSE=$(api_get "/cards/$CARD_ID/actions" "filter=commentCard")
 
-        if echo "$RESPONSE" | jq -e '.[0].id' > /dev/null 2>&1; then
-            echo "$RESPONSE" | jq -r '.[] | "[\(.date | split("T")[0])] \(.memberCreator.fullName // "Unknown"): \(.data.text)"'
-        elif echo "$RESPONSE" | jq -e '.message' > /dev/null 2>&1; then
-            echo "Error:"
-            echo "$RESPONSE" | jq -r '.message'
-            exit 1
-        else
-            echo "No comments found."
-        fi
+        echo "$RESPONSE" | jq -r 'if length == 0 then "No comments found."
+            else .[] | "[\(.date | split("T")[0])] \(.memberCreator.fullName // "Unknown"): \(.data.text)" end'
         ;;
 
     archive)
@@ -182,17 +141,10 @@ case "$1" in
         fi
 
         CARD_ID="$2"
-
         RESPONSE=$(api_put "/cards/$CARD_ID" -d "closed=true")
 
-        if echo "$RESPONSE" | jq -e '.id' > /dev/null 2>&1; then
-            echo "Card archived:"
-            echo "$RESPONSE" | jq -r '"[\(.id)] \(.name)"'
-        else
-            echo "Error archiving card:"
-            echo "$RESPONSE" | jq -r '.message // .'
-            exit 1
-        fi
+        echo "Card archived:"
+        echo "$RESPONSE" | jq -r '"[\(.id)] \(.name)"'
         ;;
 
     unarchive)
@@ -203,17 +155,10 @@ case "$1" in
         fi
 
         CARD_ID="$2"
-
         RESPONSE=$(api_put "/cards/$CARD_ID" -d "closed=false")
 
-        if echo "$RESPONSE" | jq -e '.id' > /dev/null 2>&1; then
-            echo "Card restored:"
-            echo "$RESPONSE" | jq -r '"[\(.id)] \(.name)"'
-        else
-            echo "Error restoring card:"
-            echo "$RESPONSE" | jq -r '.message // .'
-            exit 1
-        fi
+        echo "Card restored:"
+        echo "$RESPONSE" | jq -r '"[\(.id)] \(.name)"'
         ;;
 
     delete)
@@ -224,16 +169,8 @@ case "$1" in
         fi
 
         CARD_ID="$2"
-
-        RESPONSE=$(api_delete "/cards/$CARD_ID")
-
-        if [ -z "$RESPONSE" ] || echo "$RESPONSE" | jq -e '.limits' > /dev/null 2>&1; then
-            echo "Card deleted."
-        else
-            echo "Error deleting card:"
-            echo "$RESPONSE" | jq -r '.message // .'
-            exit 1
-        fi
+        api_delete "/cards/$CARD_ID" > /dev/null
+        echo "Card deleted."
         ;;
 
     top)
@@ -244,17 +181,10 @@ case "$1" in
         fi
 
         CARD_ID="$2"
-
         RESPONSE=$(api_put "/cards/$CARD_ID" -d "pos=top")
 
-        if echo "$RESPONSE" | jq -e '.id' > /dev/null 2>&1; then
-            echo "Card moved to top:"
-            echo "$RESPONSE" | jq -r '"[\(.id)] \(.name)"'
-        else
-            echo "Error moving card:"
-            echo "$RESPONSE" | jq -r '.message // .'
-            exit 1
-        fi
+        echo "Card moved to top:"
+        echo "$RESPONSE" | jq -r '"[\(.id)] \(.name)"'
         ;;
 
     bottom)
@@ -265,17 +195,10 @@ case "$1" in
         fi
 
         CARD_ID="$2"
-
         RESPONSE=$(api_put "/cards/$CARD_ID" -d "pos=bottom")
 
-        if echo "$RESPONSE" | jq -e '.id' > /dev/null 2>&1; then
-            echo "Card moved to bottom:"
-            echo "$RESPONSE" | jq -r '"[\(.id)] \(.name)"'
-        else
-            echo "Error moving card:"
-            echo "$RESPONSE" | jq -r '.message // .'
-            exit 1
-        fi
+        echo "Card moved to bottom:"
+        echo "$RESPONSE" | jq -r '"[\(.id)] \(.name)"'
         ;;
 
     position)
@@ -288,17 +211,10 @@ case "$1" in
 
         CARD_ID="$2"
         POS="$3"
-
         RESPONSE=$(api_put "/cards/$CARD_ID" -d "pos=$POS")
 
-        if echo "$RESPONSE" | jq -e '.id' > /dev/null 2>&1; then
-            echo "Card position updated:"
-            echo "$RESPONSE" | jq -r '"[\(.id)] \(.name) -> pos: \(.pos)"'
-        else
-            echo "Error updating position:"
-            echo "$RESPONSE" | jq -r '.message // .'
-            exit 1
-        fi
+        echo "Card position updated:"
+        echo "$RESPONSE" | jq -r '"[\(.id)] \(.name) -> pos: \(.pos)"'
         ;;
 
     labels)
@@ -311,18 +227,8 @@ case "$1" in
         CARD_ID="$2"
         RESPONSE=$(api_get "/cards/$CARD_ID" "fields=labels")
 
-        if echo "$RESPONSE" | jq -e '.labels' > /dev/null 2>&1; then
-            LABELS=$(echo "$RESPONSE" | jq -r '.labels')
-            if [ "$(echo "$LABELS" | jq 'length')" -gt 0 ]; then
-                echo "$LABELS" | jq -r '.[] | "[\(.color)] \(.name // "(no name)")"'
-            else
-                echo "No labels on this card."
-            fi
-        else
-            echo "Error:"
-            echo "$RESPONSE" | jq -r '.message // .'
-            exit 1
-        fi
+        echo "$RESPONSE" | jq -r 'if (.labels | length) == 0 then "No labels on this card."
+            else .labels[] | "[\(.color)] \(.name // "(no name)")" end'
         ;;
 
     label-add)
@@ -333,31 +239,20 @@ case "$1" in
             exit 1
         fi
 
-        RESPONSE=$(api_post "/cards/$2/idLabels" --data-urlencode "value=$3")
-
-        if echo "$RESPONSE" | jq -e 'type == "array" or .id' > /dev/null 2>&1; then
-            echo "Label applied."
-        else
-            echo "Error:"
-            echo "$RESPONSE" | jq -r '.message // .'
-            exit 1
-        fi
+        api_post "/cards/$2/idLabels" --data-urlencode "value=$3" > /dev/null
+        echo "Label applied."
         ;;
 
     label-remove)
-        # Remove a label from a card (the label itself survives on the board)
+        # Remove a label from a card (the label itself survives on the board).
+        # "Label removed." is printed only after a 2xx - api() stops the
+        # script on anything else.
         if [ -z "$2" ] || [ -z "$3" ]; then
             echo "Usage: trello-cards.sh label-remove <card-id> <label-id>"
             exit 1
         fi
 
-        RESPONSE=$(api_delete "/cards/$2/idLabels/$3")
-
-        if echo "$RESPONSE" | jq -e '.message' > /dev/null 2>&1; then
-            echo "Error:"
-            echo "$RESPONSE" | jq -r '.message'
-            exit 1
-        fi
+        api_delete "/cards/$2/idLabels/$3" > /dev/null
         echo "Label removed."
         ;;
 
@@ -370,14 +265,7 @@ case "$1" in
         fi
 
         RESPONSE=$(api_post "/cards/$2/checklists" --data-urlencode "name=$3")
-
-        if echo "$RESPONSE" | jq -e '.id' > /dev/null 2>&1; then
-            echo "$RESPONSE" | jq -r '.id'
-        else
-            echo "Error:"
-            echo "$RESPONSE" | jq -r '.message // .'
-            exit 1
-        fi
+        echo "$RESPONSE" | jq -r '.id'
         ;;
 
     checkitem-add)
@@ -387,15 +275,8 @@ case "$1" in
             exit 1
         fi
 
-        RESPONSE=$(api_post "/checklists/$2/checkItems" --data-urlencode "name=$3")
-
-        if echo "$RESPONSE" | jq -e '.id' > /dev/null 2>&1; then
-            echo "Added: $3"
-        else
-            echo "Error:"
-            echo "$RESPONSE" | jq -r '.message // .'
-            exit 1
-        fi
+        api_post "/checklists/$2/checkItems" --data-urlencode "name=$3" > /dev/null
+        echo "Added: $3"
         ;;
 
     members)
@@ -408,15 +289,8 @@ case "$1" in
         CARD_ID="$2"
         RESPONSE=$(api_get "/cards/$CARD_ID/members")
 
-        if echo "$RESPONSE" | jq -e '.[0].id' > /dev/null 2>&1; then
-            echo "$RESPONSE" | jq -r '.[] | "\(.fullName) (@\(.username))"'
-        elif echo "$RESPONSE" | jq -e '.message' > /dev/null 2>&1; then
-            echo "Error:"
-            echo "$RESPONSE" | jq -r '.message'
-            exit 1
-        else
-            echo "No members assigned."
-        fi
+        echo "$RESPONSE" | jq -r 'if length == 0 then "No members assigned."
+            else .[] | "\(.fullName) (@\(.username))" end'
         ;;
 
     checklist)
@@ -429,15 +303,8 @@ case "$1" in
         CARD_ID="$2"
         RESPONSE=$(api_get "/cards/$CARD_ID/checklists")
 
-        if echo "$RESPONSE" | jq -e '.[0].id' > /dev/null 2>&1; then
-            echo "$RESPONSE" | jq -r '.[] | "=== \(.name) ===\n" + ([.checkItems[] | "  [\(if .state == "complete" then "x" else " " end)] \(.name)"] | join("\n")) + "\n"'
-        elif echo "$RESPONSE" | jq -e '.message' > /dev/null 2>&1; then
-            echo "Error:"
-            echo "$RESPONSE" | jq -r '.message'
-            exit 1
-        else
-            echo "No checklists on this card."
-        fi
+        echo "$RESPONSE" | jq -r 'if length == 0 then "No checklists on this card."
+            else .[] | "=== \(.name) ===\n" + ([.checkItems[] | "  [\(if .state == "complete" then "x" else " " end)] \(.name)"] | join("\n")) + "\n" end'
         ;;
 
     *)

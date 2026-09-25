@@ -83,7 +83,8 @@ cmd_audit() {
         | jq -r '
             [.[] | select((.checklists | length) == 0 and (.desc | length) == 0) | .name] as $b
             | if ($b | length) == 0 then "  (none)"
-              else ($b | .[] | "  \(.)") end' | head -40
+              else ($b | .[0:40][] | "  \(.)"),
+                   (if ($b | length) > 40 then "  (+\(($b | length) - 40) more)" else empty end) end'
 }
 
 # Order a list by category, then alphabetically within each category, and
