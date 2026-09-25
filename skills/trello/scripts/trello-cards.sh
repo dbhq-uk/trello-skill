@@ -11,6 +11,49 @@ set -e
 . "$(dirname "${BASH_SOURCE[0]}")/lib.sh"
 trello_load_config
 
+usage() {
+    echo "Trello Cards Operations"
+    echo
+    echo "Usage: trello-cards.sh <command> [args]"
+    echo
+    echo "Listing:"
+    echo "  list <list-id> [count]      List cards in a list"
+    echo "  list-json <list-id>         List cards as JSON (for scripting)"
+    echo "  read <card-id>              Read full card details"
+    echo
+    echo "Creating & Updating:"
+    echo "  create <list-id> <title> [desc]   Create a new card"
+    echo "  update <card-id> <field> <value>  Update card (name, desc, due)"
+    echo "  move <card-id> <list-id>          Move card to another list"
+    echo
+    echo "Labels & Checklists:"
+    echo "  labels <card-id>                    Show labels on a card"
+    echo "  label-add <card-id> <label-id>      Apply a board label"
+    echo "  label-remove <card-id> <label-id>   Remove a label"
+    echo "  checklist <card-id>                 Show checklists"
+    echo "  checklist-add <card-id> <name>      Create a checklist, prints its id"
+    echo "  checkitem-add <checklist-id> <name> Add an item to a checklist"
+    echo
+    echo "Positioning:"
+    echo "  top <card-id>               Move card to top of list"
+    echo "  bottom <card-id>            Move card to bottom of list"
+    echo "  position <card-id> <pos>    Set specific position"
+    echo
+    echo "Comments:"
+    echo "  comment <card-id> <text>    Add comment to card"
+    echo "  comments <card-id>          List comments on card"
+    echo
+    echo "Archive & Delete:"
+    echo "  archive <card-id>           Archive a card"
+    echo "  unarchive <card-id>         Restore archived card"
+    echo "  delete <card-id>            Delete card permanently"
+    echo
+    echo "Details:"
+    echo "  labels <card-id>            Show labels on card"
+    echo "  members <card-id>           Show assigned members"
+    echo "  checklist <card-id>         Show checklists on card"
+}
+
 case "$1" in
     list)
         # List cards in a list
@@ -307,46 +350,15 @@ case "$1" in
             else .[] | "=== \(.name) ===\n" + ([.checkItems[] | "  [\(if .state == "complete" then "x" else " " end)] \(.name)"] | join("\n")) + "\n" end'
         ;;
 
+    help|-h|--help)
+        usage
+        ;;
+
     *)
-        echo "Trello Cards Operations"
-        echo
-        echo "Usage: trello-cards.sh <command> [args]"
-        echo
-        echo "Listing:"
-        echo "  list <list-id> [count]      List cards in a list"
-        echo "  list-json <list-id>         List cards as JSON (for scripting)"
-        echo "  read <card-id>              Read full card details"
-        echo
-        echo "Creating & Updating:"
-        echo "  create <list-id> <title> [desc]   Create a new card"
-        echo "  update <card-id> <field> <value>  Update card (name, desc, due)"
-        echo "  move <card-id> <list-id>          Move card to another list"
-        echo
-        echo "Labels & Checklists:"
-        echo "  labels <card-id>                    Show labels on a card"
-        echo "  label-add <card-id> <label-id>      Apply a board label"
-        echo "  label-remove <card-id> <label-id>   Remove a label"
-        echo "  checklist <card-id>                 Show checklists"
-        echo "  checklist-add <card-id> <name>      Create a checklist, prints its id"
-        echo "  checkitem-add <checklist-id> <name> Add an item to a checklist"
-        echo
-        echo "Positioning:"
-        echo "  top <card-id>               Move card to top of list"
-        echo "  bottom <card-id>            Move card to bottom of list"
-        echo "  position <card-id> <pos>    Set specific position"
-        echo
-        echo "Comments:"
-        echo "  comment <card-id> <text>    Add comment to card"
-        echo "  comments <card-id>          List comments on card"
-        echo
-        echo "Archive & Delete:"
-        echo "  archive <card-id>           Archive a card"
-        echo "  unarchive <card-id>         Restore archived card"
-        echo "  delete <card-id>            Delete card permanently"
-        echo
-        echo "Details:"
-        echo "  labels <card-id>            Show labels on card"
-        echo "  members <card-id>           Show assigned members"
-        echo "  checklist <card-id>         Show checklists on card"
+        # An unknown verb is an error, not a request for help: usage goes to
+        # stderr and the exit code is 2, so an agent cannot read the usage
+        # text as a result.
+        usage >&2
+        exit 2
         ;;
 esac

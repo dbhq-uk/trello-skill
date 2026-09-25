@@ -45,6 +45,17 @@ render() {
     echo "$rows" | awk -F'\t' '{printf "  %-10s  %-50s  [%s]\n", $1, $2, $3}'
 }
 
+usage() {
+    echo "Trello Due Radar"
+    echo
+    echo "Usage: due-radar.sh <command> [args]"
+    echo
+    echo "  all [days]                Due/overdue/upcoming across all your open boards (default 14 days)"
+    echo "  board <board-id> [days]   Same, scoped to one board"
+    echo
+    echo "All overdue cards are always shown; the day window only limits how far ahead upcoming items reach."
+}
+
 cmd="${1:-all}"
 
 case "$cmd" in
@@ -89,14 +100,15 @@ case "$cmd" in
         render "$CARDS" "$DAYS"
         ;;
 
+    help|-h|--help)
+        usage
+        ;;
+
     *)
-        echo "Trello Due Radar"
-        echo
-        echo "Usage: due-radar.sh <command> [args]"
-        echo
-        echo "  all [days]                Due/overdue/upcoming across all your open boards (default 14 days)"
-        echo "  board <board-id> [days]   Same, scoped to one board"
-        echo
-        echo "All overdue cards are always shown; the day window only limits how far ahead upcoming items reach."
+        # An unknown verb is an error, not a request for help: usage goes to
+        # stderr and the exit code is 2, so an agent cannot read the usage
+        # text as a result.
+        usage >&2
+        exit 2
         ;;
 esac

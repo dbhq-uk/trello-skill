@@ -163,13 +163,8 @@ cmd_sort() {
     done <<< "$plan"
 }
 
-case "${1:-}" in
-    config) cmd_config ;;
-    audit)  cmd_audit "${2:-}" ;;
-    stale)  cmd_stale "${2:-}" "${3:-}" ;;
-    sort)   cmd_sort "${2:-}" "${3:-}" "${4:-}" ;;
-    *)
-        cat >&2 <<'USAGE'
+usage() {
+    cat <<'USAGE'
 Usage: life-board.sh <command>
 
   config                     Show the resolved config path and its contents
@@ -185,6 +180,22 @@ Usage: life-board.sh <command>
 Only `sort --apply` writes; everything else is read-only.
 Credentials come from ~/.dbhq/trello/config.json.
 USAGE
-        exit 1
+}
+
+case "${1:-}" in
+    config) cmd_config ;;
+    audit)  cmd_audit "${2:-}" ;;
+    stale)  cmd_stale "${2:-}" "${3:-}" ;;
+    sort)   cmd_sort "${2:-}" "${3:-}" "${4:-}" ;;
+    help|-h|--help)
+        usage
+        ;;
+
+    *)
+        # An unknown verb is an error, not a request for help: usage goes to
+        # stderr and the exit code is 2, so an agent cannot read the usage
+        # text as a result.
+        usage >&2
+        exit 2
         ;;
 esac

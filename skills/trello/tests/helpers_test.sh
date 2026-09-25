@@ -403,11 +403,40 @@ done
 
 # USAGE WITHOUT ARGUMENTS, AND WITHOUT A REQUEST. An unknown verb must not
 # reach the API: it is how a typo becomes a call against a path built from the
-# typo.
+# typo. And it must fail: usage on stdout with exit 0 reads to an agent like a
+# result, which is how a call to a verb that did not exist went unnoticed.
+for s in "${ALL_SCRIPTS[@]}"; do
+    n=$(basename "$s")
+    : > "$CURL_LOG"
+    capture "$s" definitely-not-a-verb
+    eq "$n: an unknown verb exits 2" "2" "$RC"
+    contains "$n: an unknown verb prints usage on stderr" "Usage: $n" "$ERR"
+    eq "$n: an unknown verb prints nothing on stdout" "" "$OUT"
+    eq "$n: an unknown verb makes no request" "0" "$(wc -l < "$CURL_LOG" | tr -d ' ')"
+    capture "$s" help
+    eq "$n help exits 0" "0" "$RC"
+    contains "$n help prints usage on stdout" "Usage: $n" "$OUT"
+done
+
+# THE labels VERB THE DOCS SEND AGENTS TO. trello/SKILL.md, life-manager's
+# SKILL.md and label-add's own comment all say label ids come from
+# `trello-boards.sh labels <board-id>`, and until it existed that call fell
+# through to the usage text.
+export FAKE_BODY='[{"id":"LB1","name":"Health","color":"green"},{"id":"LB2","name":"","color":null}]'
 : > "$CURL_LOG"
-out=$(run_in_sandbox "$CARDS" definitely-not-a-verb)
-contains "an unknown verb prints usage" "Usage: trello-cards.sh" "$out"
-eq "an unknown verb makes no request" "0" "$(wc -l < "$CURL_LOG" | tr -d ' ')"
+capture "$BOARDS" labels B1
+eq "labels exits 0" "0" "$RC"
+eq "labels prints each label as [id] name (colour)" "[LB1] Health (green)
+[LB2] (no name) (no colour)" "$OUT"
+contains "labels asks for the board's labels" "https://api.trello.com/1/boards/B1/labels?" "$(cat "$CURL_LOG")"
+export FAKE_BODY='[]'
+capture "$BOARDS" labels B1
+eq "labels on a board with none says so" "No labels on this board." "$OUT"
+unset FAKE_BODY
+: > "$CURL_LOG"
+capture "$BOARDS" labels
+eq "labels with no board id prints its usage line" "Usage: trello-boards.sh labels <board-id>" "$OUT"
+eq "labels with no board id makes no request" "0" "$(wc -l < "$CURL_LOG" | tr -d ' ')"
 
 : > "$CURL_LOG"
 out=$(run_in_sandbox "$CARDS" create L1)

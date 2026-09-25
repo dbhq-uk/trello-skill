@@ -11,7 +11,7 @@ Manage Trello boards, lists, and cards via the Trello REST API.
 
 **Every card must carry a category label. No exceptions.** Whenever you create a card, sort/order, or "organise / align" a board, ensure EVERY card on the affected list(s) has a label - not just the top few you reordered. "Order the backlog" or "align with the roadmap" means **categorise the whole list**, then order it - never leave a flat, unlabelled tail.
 
-- Read the board's existing labels first (`GET /1/boards/{boardId}/labels`); reuse them, don't invent a parallel taxonomy. Typical set: Business, Feature, Pipeline, DevOps/Infra, Data, UI/UX, Bug/Fix.
+- Read the board's existing labels first (`trello-boards.sh labels <board-id>`); reuse them, don't invent a parallel taxonomy. Typical set: Business, Feature, Pipeline, DevOps/Infra, Data, UI/UX, Bug/Fix.
 - `trello-cards.sh` reads **and** writes labels: `labels` to show them, `label-add <card-id> <label-id>` and `label-remove` to change them. Label IDs come from `trello-boards.sh labels <board-id>`. The scripts send the key and token in a request header fed to curl on stdin, so neither ever reaches a command line or `ps` output.
 - When you create a card, label it in the same pass.
 - After any board-org task, verify zero unlabelled cards remain on the lists you touched.
@@ -45,6 +45,9 @@ ${CLAUDE_SKILL_DIR}/scripts/trello-boards.sh lists <board-id>
 
 # Get list details
 ${CLAUDE_SKILL_DIR}/scripts/trello-boards.sh list <list-id>
+
+# List a board's labels with their ids (for label-add and label-remove)
+${CLAUDE_SKILL_DIR}/scripts/trello-boards.sh labels <board-id>
 ```
 
 ## Card Operations
@@ -162,7 +165,7 @@ Always confirm before creating:
 
 ## Error Handling
 
-Every script exits non-zero and prints Trello's HTTP status and message on stderr when a request fails. Read that before telling the user anything: an error is never an empty result, and "No cards found." means Trello returned an empty list.
+Every script exits non-zero and prints Trello's HTTP status and message on stderr when a request fails. Read that before telling the user anything: an error is never an empty result, and "No cards found." means Trello returned an empty list. An unknown verb prints usage on stderr and exits 2; `help` prints it on stdout.
 
 - **Invalid credentials** (HTTP 401, `invalid key` or `invalid token`): Re-run setup
 - **Board/list not found**: Check ID or use find command
