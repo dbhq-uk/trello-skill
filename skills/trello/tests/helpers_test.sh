@@ -62,6 +62,8 @@ extract_fn() {
 # items reach. It reads `date -u +%s` for "now", so the tests pin now with a
 # shim and every expectation below is relative to 2026-06-15T12:00:00Z.
 eval "$(extract_fn "$DUE" render)"
+# render shows times through lib.sh's jq definitions, so take the real ones.
+eval "$(extract_fn "$LIB" trello_jq_defs)"
 NOW_FIXED=1781524800   # 2026-06-15T12:00:00Z
 date() { if [ "${1:-}" = "-u" ] && [ "${2:-}" = "+%s" ]; then echo "$NOW_FIXED"; else command date "$@"; fi; }
 
@@ -112,7 +114,20 @@ contains "render accepts a due date without them" "Whole" "$out"
 out=$(render '[]' 14)
 eq "render says so when there is nothing" "  (nothing overdue or due in the next 14 days)" "$out"
 
-unset -f date render
+# DUE TIMES ARE LOCAL. Trello stores UTC, and the radar used to print the first
+# ten characters of it - the UTC date. In UK summer time a card due at 00:30 on
+# the 26th showed as due on the 25th. Pinned TZ, so the answer does not depend
+# on where the suite runs.
+LATE='[{"name":"Just after midnight","due":"2026-09-25T23:30:00.000Z","url":"u","board":"B"}]'
+out=$(export TZ=Europe/London; render "$LATE" 120)
+contains "in BST a card due 23:30 UTC shows as 00:30 the next day" "2026-09-26 00:30" "$out"
+absent "and not as the UTC date" "2026-09-25" "$out"
+out=$(export TZ=America/New_York; render "$LATE" 120)
+contains "in New York the same card shows at 19:30 that evening" "2026-09-25 19:30" "$out"
+out=$(export TZ=Europe/London; render '[{"name":"Christmas","due":"2026-12-25T09:00:00.000Z","url":"u","board":"B"}]' 200)
+contains "in GMT the hour is the UTC hour" "2026-12-25 09:00" "$out"
+
+unset -f date render trello_jq_defs
 
 # days_ago_iso() lives once, in lib.sh, and carries the GNU/BSD date fallback.
 # Test the real one - a broken fallback is silent on the machine the author
@@ -664,6 +679,43 @@ eq "a 401 is not retried" "1" "$(grep -c '/boards/B2/cards' "$CURL_LOG")"
 eq "and is reported like any failed board" "1" "$RC"
 contains "with Trello's own words" "invalid token" "$ERR"
 unset FAKE_DIR
+
+# LOCAL TIME END TO END: every script that shows a time, in a pinned zone.
+export TZ=Europe/London FAKE_DIR="$SANDBOX/tz"; mkdir -p "$FAKE_DIR"
+echo '{"id":"CARD1","name":"Late one","due":"2025-09-25T23:30:00.000Z","dueComplete":false,"labels":[]}' \
+    > "$FAKE_DIR/cards_CARD1.json"
+capture "$CARDS" read CARD1
+contains "read shows the due time in local time, and the stored value" \
+   "Due: 2025-09-26 00:30 local time (2025-09-25T23:30:00.000Z)" "$OUT"
+echo '[{"id":"A1","date":"2025-09-25T23:30:00.000Z","data":{"text":"late note"},"memberCreator":{"fullName":"n"}}]' \
+    > "$FAKE_DIR/cards_CARD1_actions.json"
+capture "$CARDS" comments CARD1
+eq "comments are dated in local time" "[2025-09-26] n: late note" "$OUT"
+echo '{"name":"Board","url":"u"}' > "$FAKE_DIR/boards_B1.json"
+echo '[{"id":"L1","name":"To do"}]' > "$FAKE_DIR/boards_B1_lists.json"
+echo '[{"id":"X1","name":"Late one","idList":"L1","due":"2025-09-25T23:30:00.000Z","dueComplete":false,"labels":[]}]' \
+    > "$FAKE_DIR/boards_B1_cards.json"
+echo '[{"id":"A1","type":"createCard","date":"2025-09-25T23:30:00.000Z","data":{"card":{"name":"Late one"}}}]' \
+    > "$FAKE_DIR/boards_B1_actions.json"
+capture "$DIGEST" digest B1 7
+contains "digest shows a due time in local time" "Late one (2025-09-26 00:30)" "$OUT"
+contains "digest dates activity in local time" "2025-09-26 created: Late one" "$OUT"
+contains "digest says its times are local" "times are local" "$OUT"
+absent "digest no longer reports in UTC" "UTC" "$OUT"
+echo '[{"id":"B1","name":"Board"}]' > "$FAKE_DIR/members_me_boards.json"
+capture "$DUE" all 14
+contains "due-radar says its times are local" "times are local" "$OUT"
+absent "due-radar no longer reports in UTC" "UTC" "$OUT"
+echo '[{"id":"X1","name":"Idle","dateLastActivity":"2025-09-25T23:30:00.000Z"}]' > "$FAKE_DIR/lists_L1_cards.json"
+capture "$LIFE" stale L1 1
+eq "stale dates the last activity in local time" "  2025-09-26  Idle" "$OUT"
+unset TZ FAKE_DIR
+
+# HOW TO WRITE ONE. Nothing told the agent, so the zone on a new due date was a
+# guess. trello/SKILL.md now states the rule.
+contains "trello/SKILL.md says to write a due date with an offset" "full ISO 8601 time with an offset" \
+   "$(cat "$REPO_ROOT/skills/trello/SKILL.md")"
+contains "and to default to 09:00 local" "09:00" "$(cat "$REPO_ROOT/skills/trello/SKILL.md")"
 
 rm -rf "$SANDBOX"
 

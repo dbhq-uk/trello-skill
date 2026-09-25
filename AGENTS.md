@@ -22,12 +22,13 @@ Each skill is `skills/<name>/SKILL.md` plus optional `scripts/` and `references/
 
 ## Conventions
 
-- Every script sources `skills/trello/scripts/lib.sh`, found relative to its own path, and makes no request of its own. lib.sh holds config loading, the `~/.trello` migration, the one `api()` call, paging (`api_get_all`) and the shared helpers, so a fix to how a request is made lands once. Scripts in the other skills reach it as `../../trello/scripts/lib.sh` and, when a partial install left `trello` out, stop with a message that names it.
+- Every script sources `skills/trello/scripts/lib.sh`, found relative to its own path, and makes no request of its own. lib.sh holds config loading, the `~/.trello` migration, the one `api()` call, paging (`api_get_all`), local-time rendering (`trello_jq_defs`, `local_now`) and the shared helpers, so a fix to how a request is made lands once. Scripts in the other skills reach it as `../../trello/scripts/lib.sh` and, when a partial install left `trello` out, stop with a message that names it.
 - The `trello` core skill owns setup, lib.sh and the shared API scripts. Other skills (e.g. `store-sort`) call the core scripts by their `${CLAUDE_SKILL_DIR}/../trello/scripts/...` path - `${CLAUDE_SKILL_DIR}` is the calling skill's own directory, so `../trello` is the sibling core skill (all skills sit side by side under the plugin / `~/.claude/skills/`).
 - That holds for the plugin and `install.sh`, not for a partial install: the skills CLI lets a user pick single skills. So the README install section and each of the four other SKILL.md files say `trello` must be installed beside them and give the `npx skills add ... --skill trello --skill <name>` command, and every script call in a SKILL.md code block starts at `${CLAUDE_SKILL_DIR}`, never a bare script name. The suite checks both.
 - SKILL.md references scripts via `${CLAUDE_SKILL_DIR}` (the skill's own directory), which Claude Code substitutes for personal, project, and plugin installs alike. `install.sh` therefore symlinks the whole skill directory into `~/.claude/skills/` (no rewrite). `install-codex.sh` still rewrites the variable to the install path, since Codex does not substitute it.
 - Shell scripts use `set -e`; errors go to stderr, structured output to stdout. `api()` in lib.sh retries an HTTP 429 three times (waiting 2, 4 and 8 seconds), then stops the script on any non-2xx answer with Trello's status and message, because Trello sends its errors as plain text, not JSON. So a verb handles success only, and prints "nothing found" only for a real empty result.
 - A request for a long list - a board's cards, its actions, a card's comments, a list's cards - goes through `api_get_all`, never `api_get`. Trello answers at most 1000 results a request and says nothing when it stops; `api_get_all` pages with `before` until a page comes back short, and says "capped at N" on stderr if it has to stop first.
+- Every time a script shows goes through `local_time` or `local_date` from `trello_jq_defs`, never `.due[0:10]`: Trello stores UTC, and its first ten characters are the UTC date, which is the wrong day near midnight for anyone not on UTC. The zone is named once per output, from `local_now`, because jq's `%Z` names it wrongly.
 - Any caller-supplied text sent to the API (card names, descriptions, comments) goes through `curl --data-urlencode`, never plain `-d` - `-d` sends the body raw, so an `&` silently truncates the value and a `+` arrives as a space.
 - No secrets in the repo - credentials live under `~/.dbhq/trello/`.
 - House style: British English, plain hyphens.
@@ -68,6 +69,6 @@ push. These things in it are not tidiness and should not be weakened:
   suite greps for it. Six copies of that plumbing is how one error-handling bug
   came to be in about thirty places.
 
-`render()` in `due-radar.sh`, `days_ago_iso()` in `lib.sh` and
-`resolve_config()` are tested by extracting the real function out of the live
+`render()` in `due-radar.sh`, `days_ago_iso()` and `trello_jq_defs()` in
+`lib.sh` and `resolve_config()` are tested by extracting the real function out of the live
 script, so renaming one fails the suite loudly instead of testing a stale copy.

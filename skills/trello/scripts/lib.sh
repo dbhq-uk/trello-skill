@@ -177,4 +177,28 @@ days_ago_iso() {
         || date -u -v-"${d}"d +%Y-%m-%dT%H:%M:%SZ
 }
 
+# Trello stores every time in UTC ("2026-09-25T23:30:00.000Z"). Shown as the
+# first ten characters, that is the UTC date - so in UK summer time a card due
+# at 00:30 on the 26th read as due on the 25th, and "what's due today" was
+# wrong near midnight. Every time a script shows goes through local_time
+# instead: the user's own date and hour, from their TZ.
+#
+# Prepend to a jq filter:  jq -r "$(trello_jq_defs)"' .due | local_time'
+#
+# There is no zone name on each time, on purpose: jq's %Z printed "GMT" during
+# BST in testing. The hour is right; only the name is wrong. So scripts print
+# the zone once, in the header, from local_now below.
+trello_jq_defs() {
+    cat <<'JQ'
+def local_time: sub("\\.[0-9]+Z$"; "Z") | fromdateiso8601 | strflocaltime("%Y-%m-%d %H:%M");
+def local_date: sub("\\.[0-9]+Z$"; "Z") | fromdateiso8601 | strflocaltime("%Y-%m-%d");
+JQ
+}
+
+# Now, in the user's local time, with the zone's name from date(1):
+# "2026-09-25 09:15 BST".
+local_now() {
+    date +'%Y-%m-%d %H:%M %Z'
+}
+
 trello_migrate

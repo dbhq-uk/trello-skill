@@ -102,7 +102,7 @@ case "$1" in
         CARD_ID="$2"
         RESPONSE=$(api_get "/cards/$CARD_ID" "fields=name,id,desc,pos,url,labels,idList,due,dueComplete")
 
-        echo "$RESPONSE" | jq -r '"Card: \(.name)\nID: \(.id)\nPosition: \(.pos)\nList ID: \(.idList)\nURL: \(.url)\nDue: \(.due // "None")\nDue Complete: \(.dueComplete)\n\nDescription:\n\(.desc // "None")\n\nLabels: \(if .labels | length > 0 then [.labels[].name] | join(", ") else "None" end)"'
+        echo "$RESPONSE" | jq -r "$(trello_jq_defs)"'"Card: \(.name)\nID: \(.id)\nPosition: \(.pos)\nList ID: \(.idList)\nURL: \(.url)\nDue: \(if .due then "\(.due | local_time) local time (\(.due))" else "None" end)\nDue Complete: \(.dueComplete)\n\nDescription:\n\(.desc // "None")\n\nLabels: \(if .labels | length > 0 then [.labels[].name] | join(", ") else "None" end)"'
         ;;
 
     create)
@@ -181,8 +181,8 @@ case "$1" in
         CARD_ID="$2"
         RESPONSE=$(api_get_all "/cards/$CARD_ID/actions" "filter=commentCard")
 
-        echo "$RESPONSE" | jq -r 'if length == 0 then "No comments found."
-            else .[] | "[\(.date | split("T")[0])] \(.memberCreator.fullName // "Unknown"): \(.data.text)" end'
+        echo "$RESPONSE" | jq -r "$(trello_jq_defs)"'if length == 0 then "No comments found."
+            else .[] | "[\(.date | local_date)] \(.memberCreator.fullName // "Unknown"): \(.data.text)" end'
         ;;
 
     archive)
