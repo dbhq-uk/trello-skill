@@ -201,19 +201,39 @@ default='[{"id":"CARD1","name":"a card","desc":"","pos":1,"labels":[],"due":null
 # boards_B1_actions.json; a request with before= in it reads
 # boards_B1_actions.before.json instead. A path with no file falls through to
 # FAKE_BODY.
+#
+# <key>.status, if there, scripts the answers to that path one request at a
+# time: each line is "<status> [body]" and is used up by one request, so
+# "429 ...", "429 ...", "200" is two refusals and then the real answer. Once
+# the lines run out the path answers as it would with no .status file.
 url=""
 for a in "$@"; do case "$a" in https://*) url="$a" ;; esac; done
 key="${url#https://api.trello.com/1/}"; key="${key%%\?*}"; key="${key//\//_}"
 case "$url" in *before=*) key="$key.before" ;; esac
-if [ -n "${FAKE_DIR:-}" ] && [ -f "$FAKE_DIR/$key.json" ]; then
+status="${FAKE_STATUS:-200}" errbody=""
+script="${FAKE_DIR:-/nonexistent}/$key.status"
+if [ -s "$script" ]; then
+    read -r status errbody < "$script"
+    tail -n +2 "$script" > "$script.next"; mv "$script.next" "$script"
+fi
+if [ -n "$errbody" ]; then
+    printf '%s\n' "$errbody"
+elif [ -n "${FAKE_DIR:-}" ] && [ -f "$FAKE_DIR/$key.json" ]; then
     cat "$FAKE_DIR/$key.json"; echo
 else
     printf '%s\n' "${FAKE_BODY-$default}"
 fi
-for a in "$@"; do [ "$a" = "-w" ] && printf '%s' "${FAKE_STATUS:-200}"; done
+for a in "$@"; do [ "$a" = "-w" ] && printf '%s' "$status"; done
 exit 0
 SH
     chmod +x "$SANDBOX/bin/curl"
+    # sleep is the 429 backoff. The fake records how long it was asked to wait
+    # and returns at once, so the retry tests take no time.
+    cat > "$SANDBOX/bin/sleep" <<'SH'
+#!/bin/bash
+printf '%s\n' "$*" >> "$CURL_LOG.sleep"
+SH
+    chmod +x "$SANDBOX/bin/sleep"
     export CURL_LOG="$SANDBOX/curl.log"
     : > "$CURL_LOG"; : > "$CURL_LOG.headers"
 }
@@ -600,6 +620,49 @@ eq "a larger count shows them all" "73" "$(grep -c '^\[C' <<< "$OUT")"
 absent "and does not claim any were left out" "showing" "$OUT"
 capture "$CARDS" list L1 lots
 eq "a count that is not a number is refused" "1" "$RC"
+unset FAKE_DIR
+
+# A BOARD THAT COULD NOT BE READ IS NAMED, NOT DROPPED. due-radar all used to
+# turn a failed board into an empty list: it printed the others, said nothing
+# about the gap and exited 0, so "nothing due" covered a board it never saw.
+export FAKE_DIR="$SANDBOX/radar"; mkdir -p "$FAKE_DIR"
+echo '[{"id":"B1","name":"Home"},{"id":"B2","name":"Work"}]' > "$FAKE_DIR/members_me_boards.json"
+echo '[{"id":"X1","name":"Renew passport","due":"2020-01-01T09:00:00.000Z","dueComplete":false,"url":"u"}]' \
+    > "$FAKE_DIR/boards_B1_cards.json"
+echo '[{"id":"X2","name":"Invoice client","due":"2020-01-01T09:00:00.000Z","dueComplete":false,"url":"u"}]' \
+    > "$FAKE_DIR/boards_B2_cards.json"
+limited='429 {"error":"API_TOKEN_LIMIT_EXCEEDED","message":"Rate limit exceeded"}'
+printf '%s\n' "$limited" "$limited" "$limited" "$limited" > "$FAKE_DIR/boards_B2_cards.status"
+: > "$CURL_LOG"; : > "$CURL_LOG.sleep"
+capture "$DUE" all 14
+eq "due-radar all exits non-zero when a board could not be read" "1" "$RC"
+contains "the boards it did read are still shown" "Renew passport" "$OUT"
+contains "the output says the radar is incomplete" "could not read 1 of 2 boards" "$OUT"
+contains "and names the board it could not read" "    - Work" "$OUT"
+contains "Trello's reason is on stderr" "HTTP 429" "$ERR"
+contains "and says it was retried first" "after 3 retries" "$ERR"
+
+# A 429 IS RETRIED. Three more tries, waiting 2, 4 and 8 seconds, which spans
+# Trello's whole 10-second window, before it counts as a failure.
+eq "a 429 that persists is tried four times in all" "4" "$(grep -c '/boards/B2/cards' "$CURL_LOG")"
+eq "with a doubling wait between tries" "2 4 8" "$(tr '\n' ' ' < "$CURL_LOG.sleep" | sed 's/ $//')"
+
+# And a 429 that clears is not a failure at all.
+printf '%s\n' "$limited" "$limited" > "$FAKE_DIR/boards_B2_cards.status"
+: > "$CURL_LOG"; : > "$CURL_LOG.sleep"
+capture "$DUE" all 14
+eq "a 429 that clears on retry leaves due-radar exiting 0" "0" "$RC"
+contains "and the board it retried is in the radar" "Invoice client" "$OUT"
+absent "and nothing is called incomplete" "Incomplete" "$OUT"
+eq "it asked three times: two refusals, then the answer" "3" "$(grep -c '/boards/B2/cards' "$CURL_LOG")"
+
+# Any other error is not retried: a 401 will not be different in 2 seconds.
+echo '401 invalid token' > "$FAKE_DIR/boards_B2_cards.status"
+: > "$CURL_LOG"; : > "$CURL_LOG.sleep"
+capture "$DUE" all 14
+eq "a 401 is not retried" "1" "$(grep -c '/boards/B2/cards' "$CURL_LOG")"
+eq "and is reported like any failed board" "1" "$RC"
+contains "with Trello's own words" "invalid token" "$ERR"
 unset FAKE_DIR
 
 rm -rf "$SANDBOX"
