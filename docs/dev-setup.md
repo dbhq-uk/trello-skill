@@ -44,7 +44,7 @@ Then, in Claude Code, try *"show my Trello boards"* or *"what's due on Trello th
 ## Adding to the pack
 
 - New skill: add `skills/<name>/SKILL.md` (valid frontmatter, `name` matching the directory) plus optional `scripts/` and `references/`. Re-run `./install.sh`.
-- New store preset for `store-sort`: copy `skills/store-sort/references/tesco.md`.
+- New store preset for `store-sort`: copy `skills/store-sort/references/stores/tesco.json`.
 
 ## Working across machines
 

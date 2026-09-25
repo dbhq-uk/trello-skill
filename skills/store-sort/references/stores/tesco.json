@@ -1,0 +1,302 @@
+{
+  "name": "Tesco (UK)",
+  "about": "One store's layout: the aisle order of one Tesco superstore in the UK, built from a real shopping trip there. Tesco stores are laid out differently, so if the user's store does not match, copy this file to ~/.dbhq/trello/stores/<name>.json and change it.",
+  "sections": [
+    {
+      "name": "Fruit",
+      "emoji": "🍓",
+      "range": [1000, 1999],
+      "where": "Store entrance. Eating fruit only: avocado and cooking citrus are Veg.",
+      "items": [
+        {"emoji": "🍌", "keywords": ["banana"]},
+        {"emoji": "🍎", "keywords": ["apple"]},
+        {"emoji": "🍐", "keywords": ["pear"]},
+        {"emoji": "🥭", "keywords": ["mango"]},
+        {"emoji": "🍓", "keywords": ["strawberry", "strawberries", "raspberry", "raspberries", "blackberry", "blackberries", "berry", "berries"]},
+        {"emoji": "🫐", "keywords": ["blueberry", "blueberries"]},
+        {"emoji": "🍇", "keywords": ["grape"]},
+        {"emoji": "🍈", "keywords": ["melon"]},
+        {"emoji": "🍉", "keywords": ["watermelon"]},
+        {"emoji": "🍍", "keywords": ["pineapple"]},
+        {"emoji": "🍑", "keywords": ["peach", "nectarine", "plum"]},
+        {"emoji": "🍒", "keywords": ["cherry", "cherries"]},
+        {"emoji": "🍊", "keywords": ["orange", "satsuma", "clementine", "easy peeler"]},
+        {"emoji": "🥝", "keywords": ["kiwi"]},
+        {"emoji": "🥥", "keywords": ["coconut"]}
+      ]
+    },
+    {
+      "name": "Veg",
+      "emoji": "🥬",
+      "range": [2000, 2999],
+      "where": "Root veg first, mushrooms last. Mash and prepared potatoes sit with the loose potatoes.",
+      "items": [
+        {"emoji": "🥔", "keywords": ["potato", "sweet potato", "mash"]},
+        {"emoji": "🥕", "keywords": ["carrot", "parsnip", "swede", "turnip", "beetroot"]},
+        {"emoji": "🧅", "keywords": ["onion", "red onion", "spring onion", "shallot", "leek"]},
+        {"emoji": "🧄", "keywords": ["garlic", "ginger"]},
+        {"emoji": "🍋", "keywords": ["lemon", "lime"]},
+        {"emoji": "🍅", "keywords": ["tomato", "cherry tomato"]},
+        {"emoji": "🫑", "keywords": ["pepper", "bell pepper", "red pepper", "green pepper", "yellow pepper"]},
+        {"emoji": "🌶️", "keywords": ["chilli", "chili", "red chilli", "green chilli"]},
+        {"emoji": "🥒", "keywords": ["cucumber", "courgette"]},
+        {"emoji": "🥬", "keywords": ["lettuce", "spinach", "pak choi", "little gem", "iceberg"]},
+        {"emoji": "🥗", "keywords": ["salad", "rocket", "watercress", "radish", "celery"]},
+        {"emoji": "🥑", "keywords": ["avocado"]},
+        {"emoji": "🥦", "keywords": ["broccoli", "cauliflower", "green beans", "fine beans", "runner beans", "sugar snap", "mangetout", "asparagus"]},
+        {"emoji": "🥬", "keywords": ["cabbage", "kale", "spring greens", "leaves"]},
+        {"emoji": "🌽", "keywords": ["sweetcorn", "corn on the cob"]},
+        {"emoji": "🍆", "keywords": ["aubergine"]},
+        {"emoji": "🎃", "keywords": ["butternut squash", "pumpkin"]},
+        {"emoji": "🌿", "keywords": ["fresh herbs", "basil", "parsley", "mint", "coriander", "rosemary", "thyme", "dill", "chives", "sage"]},
+        {"emoji": "🍄", "keywords": ["mushroom"]}
+      ]
+    },
+    {
+      "name": "Meat & Fish",
+      "emoji": "🍖",
+      "range": [3000, 3999],
+      "items": [
+        {"emoji": "🍗", "keywords": ["chicken", "turkey", "poultry", "duck"]},
+        {"emoji": "🥩", "keywords": ["pork"]},
+        {"emoji": "🥩", "keywords": ["beef", "steak", "lamb"]},
+        {"emoji": "🍔", "keywords": ["mince", "burger"]},
+        {"emoji": "🥓", "keywords": ["bacon", "pancetta", "lardons", "gammon"]},
+        {"emoji": "🌭", "keywords": ["sausage", "hot dog", "chorizo"]},
+        {"emoji": "🐟", "keywords": ["fish", "salmon", "smoked salmon", "cod", "haddock", "sea bass", "mackerel", "tuna steak"]},
+        {"emoji": "🦐", "keywords": ["prawn", "king prawn", "shrimp"]}
+      ]
+    },
+    {
+      "name": "Chilled Meals & Deli",
+      "emoji": "🥡",
+      "range": [4000, 4999],
+      "items": [
+        {"emoji": "🥡", "keywords": ["ready meal", "chilled meal"]},
+        {"emoji": "🍕", "keywords": ["pizza"]},
+        {"emoji": "🥟", "keywords": ["fresh pasta", "gnocchi", "ravioli", "tortellini"]},
+        {"emoji": "🥡", "keywords": ["fresh sauce", "fresh pesto"]},
+        {"emoji": "🥪", "keywords": ["nduja", "salt beef", "charcuterie", "salami", "prosciutto", "parma ham", "ham", "pastrami"]},
+        {"emoji": "🥧", "keywords": ["quiche", "pork pie", "scotch egg", "sausage roll"]},
+        {"emoji": "🧆", "keywords": ["hummus", "houmous", "tzatziki", "dip", "falafel", "guacamole"]},
+        {"emoji": "🫒", "keywords": ["olive"]},
+        {"emoji": "🍣", "keywords": ["sushi"]}
+      ]
+    },
+    {
+      "name": "Cold Section (chilled dairy)",
+      "emoji": "🧀",
+      "range": [5000, 5999],
+      "where": "Cheese, then milk and cream, then yoghurt. Butter and eggs are not here at Tesco.",
+      "items": [
+        {"emoji": "🧀", "keywords": ["cheese", "cheddar", "parmesan", "mozzarella", "burrata", "feta", "halloumi", "brie", "camembert", "cream cheese", "ricotta", "mascarpone", "paneer"]},
+        {"emoji": "🥛", "keywords": ["milk", "oat milk", "almond milk", "soya milk", "cream", "double cream", "single cream", "soured cream", "sour cream", "crème fraîche", "creme fraiche"]},
+        {"emoji": "🥛", "keywords": ["yoghurt", "yogurt", "greek yoghurt", "skyr", "kefir"]}
+      ]
+    },
+    {
+      "name": "Chilled Juice",
+      "emoji": "🧃",
+      "range": [6000, 6999],
+      "where": "The juice fridge at the end of the dairy run. Squash and fizzy drinks are Soft Drinks.",
+      "items": [
+        {"emoji": "🧃", "keywords": ["juice", "orange juice", "apple juice", "smoothie"]}
+      ]
+    },
+    {
+      "name": "Tins & Jars",
+      "emoji": "🥫",
+      "range": [7000, 7999],
+      "where": "Tomatoes first, then beans, fish, fruit and veg. Tomato purée is last, where the spice run starts.",
+      "items": [
+        {"emoji": "🥫", "keywords": ["passata", "tinned tomatoes", "chopped tomatoes", "plum tomatoes"]},
+        {"emoji": "🥫", "keywords": ["beans", "baked beans", "kidney beans", "butter beans", "black beans", "cannellini", "chickpeas", "lentils"]},
+        {"emoji": "🥫", "keywords": ["tinned fish", "tuna", "sardines", "anchovy", "anchovies"]},
+        {"emoji": "🥫", "keywords": ["tinned fruit", "tinned peaches"]},
+        {"emoji": "🥫", "keywords": ["tinned veg", "tinned sweetcorn", "soup"]},
+        {"emoji": "🥫", "keywords": ["tomato purée", "tomato puree", "tomato paste"]}
+      ]
+    },
+    {
+      "name": "Spices, Seasonings, Oils & Vinegars",
+      "emoji": "🧂",
+      "range": [8000, 8999],
+      "where": "Same aisle as the tins. Butter and cooking fats are here at Tesco, before the oils. Asian oils and vinegars are World Foods.",
+      "items": [
+        {"emoji": "🧂", "keywords": ["dried herbs", "mixed herbs", "oregano", "bay leaves", "dried thyme", "dried basil"]},
+        {"emoji": "🧂", "keywords": ["spice", "spices", "paprika", "smoked paprika", "cumin", "turmeric", "cinnamon", "nutmeg", "chilli flakes", "chilli powder", "cayenne", "garam masala", "curry powder"]},
+        {"emoji": "🧂", "keywords": ["salt", "sea salt", "black pepper", "peppercorns"]},
+        {"emoji": "🍲", "keywords": ["seasoning", "fajita", "taco", "cottage pie mix", "gravy", "stock", "stock cubes", "cheese powder"]},
+        {"emoji": "🧈", "keywords": ["butter", "margarine", "lard", "ghee"]},
+        {"emoji": "🍶", "keywords": ["oil", "olive oil", "vegetable oil", "sunflower oil", "rapeseed oil", "cooking spray", "vinegar", "balsamic", "balsamic vinegar", "white wine vinegar", "red wine vinegar", "cider vinegar"]}
+      ]
+    },
+    {
+      "name": "Sauces & Pickles",
+      "emoji": "🫙",
+      "range": [9000, 9999],
+      "where": "Cooking sauces, then table sauces, then pickles, then honey, syrups and jams.",
+      "items": [
+        {"emoji": "🫙", "keywords": ["sauce", "pasta sauce", "cooking sauce", "curry sauce", "pesto", "salsa"]},
+        {"emoji": "🫙", "keywords": ["mayonnaise", "mayo", "ketchup", "mustard", "brown sauce", "bbq sauce", "hot sauce", "chipotle", "salad cream", "mint sauce", "horseradish"]},
+        {"emoji": "🫙", "keywords": ["pickle", "pickled onions", "gherkin", "cornichon", "jalapeño", "jalapeno", "capers"]},
+        {"emoji": "🍯", "keywords": ["honey", "syrup", "maple syrup", "golden syrup", "glaze", "balsamic glaze", "jam", "marmalade", "lemon curd"]}
+      ]
+    },
+    {
+      "name": "Bread & Bakery",
+      "emoji": "🍞",
+      "range": [10000, 10999],
+      "where": "Savoury bread first, sweet bakery last. Shortbread is here, not with the biscuits. Crackers are Snacks.",
+      "items": [
+        {"emoji": "🍞", "keywords": ["bread", "loaf", "loaves", "sourdough"]},
+        {"emoji": "🥖", "keywords": ["baguette", "ciabatta", "focaccia", "roll"]},
+        {"emoji": "🫓", "keywords": ["flatbread", "pitta", "pita", "naan"]},
+        {"emoji": "🫓", "keywords": ["wrap", "tortilla"]},
+        {"emoji": "🥯", "keywords": ["bagel", "english muffin", "crumpet"]},
+        {"emoji": "🥐", "keywords": ["croissant", "pain au chocolat", "pastries", "brioche", "muffin", "cake", "doughnut", "scone", "shortbread", "teacake"]}
+      ]
+    },
+    {
+      "name": "Baking",
+      "emoji": "🧁",
+      "range": [11000, 11999],
+      "items": [
+        {"emoji": "🧁", "keywords": ["flour", "plain flour", "self-raising flour", "strong flour", "bread flour", "pizza flour", "00 flour", "cornflour"]},
+        {"emoji": "🧁", "keywords": ["sugar", "caster sugar", "icing sugar", "brown sugar"]},
+        {"emoji": "🧁", "keywords": ["baking powder", "bicarbonate", "bicarb", "yeast", "vanilla", "ground almonds", "sprinkles"]},
+        {"emoji": "🧁", "keywords": ["cocoa"]}
+      ]
+    },
+    {
+      "name": "Eggs",
+      "emoji": "🥚",
+      "range": [12000, 12999],
+      "where": "Eggs are ambient at Tesco, just after the bread and baking aisles.",
+      "items": [
+        {"emoji": "🥚", "keywords": ["egg"]}
+      ]
+    },
+    {
+      "name": "Pasta, Rice, Noodles & World Foods",
+      "emoji": "🍝",
+      "range": [13000, 13999],
+      "where": "Dry goods first, then the sauces. Sesame oil, rice wine vinegar and chilli oil are here, not on the oils shelf.",
+      "items": [
+        {"emoji": "🍝", "keywords": ["pasta", "spaghetti", "penne", "fusilli", "linguine", "tagliatelle", "rigatoni", "orzo", "lasagne", "macaroni"]},
+        {"emoji": "🍚", "keywords": ["rice", "basmati", "risotto rice", "arborio", "grains", "quinoa", "couscous", "bulgur", "pearl barley"]},
+        {"emoji": "🥢", "keywords": ["garlic paste", "garlic purée", "garlic puree", "lazy garlic", "ginger paste"]},
+        {"emoji": "🍜", "keywords": ["noodle", "rice noodles", "ramen", "udon"]},
+        {"emoji": "🥢", "keywords": ["soy sauce", "sesame oil", "rice wine vinegar", "rice vinegar", "shaoxing", "chilli oil", "crispy chilli oil", "fish sauce", "oyster sauce", "hoisin", "teriyaki", "sweet chilli sauce", "mirin"]},
+        {"emoji": "🥢", "keywords": ["curry paste", "miso", "coconut milk", "coconut cream", "tahini", "harissa", "gochujang"]}
+      ]
+    },
+    {
+      "name": "Cereal & Breakfast",
+      "emoji": "🥣",
+      "range": [14000, 14999],
+      "items": [
+        {"emoji": "🥣", "keywords": ["cereal", "cornflakes", "bran flakes", "granola", "muesli", "weetabix"]},
+        {"emoji": "🥣", "keywords": ["porridge", "oats", "porridge oats"]},
+        {"emoji": "🥣", "keywords": ["breakfast bars", "cereal bars"]},
+        {"emoji": "🥜", "keywords": ["peanut butter", "marmite", "nutella", "chocolate spread"]}
+      ]
+    },
+    {
+      "name": "Hot Drinks",
+      "emoji": "☕",
+      "range": [15000, 15999],
+      "items": [
+        {"emoji": "🍵", "keywords": ["tea", "teabags", "tea bags", "green tea", "herbal tea"]},
+        {"emoji": "☕", "keywords": ["coffee", "instant coffee", "ground coffee", "coffee pods", "hot chocolate"]}
+      ]
+    },
+    {
+      "name": "Snacks",
+      "emoji": "🍪",
+      "range": [16000, 16999],
+      "items": [
+        {"emoji": "🥨", "keywords": ["crisps", "pretzels", "popcorn", "tortilla chips", "snacks"]},
+        {"emoji": "🥨", "keywords": ["crackers", "oatcakes", "rice cakes", "breadsticks"]},
+        {"emoji": "🍪", "keywords": ["biscuits", "cookies", "digestives"]},
+        {"emoji": "🌰", "keywords": ["nuts", "peanuts", "almonds", "cashews", "walnuts", "pistachios", "seeds", "pumpkin seeds"]},
+        {"emoji": "🍫", "keywords": ["chocolate", "sweets"]}
+      ]
+    },
+    {
+      "name": "Soft Drinks",
+      "emoji": "💧",
+      "range": [17000, 17999],
+      "where": "Ambient drinks. Chilled juice is its own section, in the dairy run.",
+      "items": [
+        {"emoji": "💧", "keywords": ["water", "sparkling water", "soda water"]},
+        {"emoji": "🥤", "keywords": ["squash", "cordial"]},
+        {"emoji": "🥤", "keywords": ["fizzy", "cola", "lemonade", "tonic", "ginger beer"]}
+      ]
+    },
+    {
+      "name": "Frozen",
+      "emoji": "🧊",
+      "range": [18000, 18999],
+      "items": [
+        {"emoji": "🧊", "keywords": ["frozen", "ice", "peas", "frozen peas", "chips", "oven chips", "frozen pizza", "fish fingers"]},
+        {"emoji": "🍦", "keywords": ["ice cream", "ice lolly", "sorbet"]}
+      ]
+    },
+    {
+      "name": "Beer, Wine & Spirits",
+      "emoji": "🍷",
+      "range": [19000, 19999],
+      "where": "Beer, then sparkling, white, rosé and red wine, then fortified, spirits and liqueurs.",
+      "items": [
+        {"emoji": "🍺", "keywords": ["beer", "lager", "ale", "cider", "stout"]},
+        {"emoji": "🥂", "keywords": ["prosecco", "crémant", "cremant", "cava", "champagne", "sparkling wine"]},
+        {"emoji": "🍷", "keywords": ["wine", "white wine", "sauvignon", "chardonnay", "pinot grigio"]},
+        {"emoji": "🍷", "keywords": ["rosé", "rose wine"]},
+        {"emoji": "🍷", "keywords": ["red wine", "rioja", "merlot", "malbec", "shiraz", "pinot noir"]},
+        {"emoji": "🍷", "keywords": ["port", "sherry"]},
+        {"emoji": "🥃", "keywords": ["whisky", "whiskey", "gin", "rum", "vodka", "tequila", "brandy", "sake", "soju"]},
+        {"emoji": "🍸", "keywords": ["vermouth", "aperitivo", "aperol", "campari", "limoncello", "liqueur", "baileys"]}
+      ]
+    },
+    {
+      "name": "Health & Beauty",
+      "emoji": "🧴",
+      "range": [20000, 20999],
+      "items": [
+        {"emoji": "🧴", "keywords": ["skincare", "moisturiser", "face wash", "cleanser", "lotion", "sun cream", "suncream", "shampoo", "conditioner", "deodorant"]},
+        {"emoji": "🧴", "keywords": ["cotton pads", "cotton buds"]},
+        {"emoji": "🪥", "keywords": ["toothpaste", "toothbrush", "mouthwash", "floss"]},
+        {"emoji": "🧼", "keywords": ["soap", "hand wash", "body wash", "shower gel"]},
+        {"emoji": "🧻", "keywords": ["toilet roll", "toilet paper", "loo roll", "kitchen roll", "tissues"]},
+        {"emoji": "💊", "keywords": ["paracetamol", "ibuprofen", "vitamins", "supplements", "medicine", "painkillers", "antihistamine"]},
+        {"emoji": "🪒", "keywords": ["razor", "shaving foam"]},
+        {"emoji": "🩹", "keywords": ["plasters"]}
+      ]
+    },
+    {
+      "name": "Household / Cleaning",
+      "emoji": "🧽",
+      "range": [21000, 21999],
+      "items": [
+        {"emoji": "🧺", "keywords": ["laundry", "detergent", "washing powder", "fabric softener", "softener"]},
+        {"emoji": "🧽", "keywords": ["dishwasher tabs", "dishwasher tablets", "dishwasher salt", "rinse aid", "washing-up liquid", "sponge", "scourer"]},
+        {"emoji": "🧹", "keywords": ["cleaning spray", "surface spray", "cleaner", "bleach", "disinfectant", "wipes"]},
+        {"emoji": "🔋", "keywords": ["battery", "batteries"]},
+        {"emoji": "🗑️", "keywords": ["bin bags", "bin liners"]},
+        {"emoji": "💡", "keywords": ["light bulb"]},
+        {"emoji": "🕯️", "keywords": ["candle"]}
+      ]
+    },
+    {
+      "name": "Pet",
+      "emoji": "🐾",
+      "range": [22000, 22999],
+      "items": [
+        {"emoji": "🐱", "keywords": ["cat food", "cat litter"]},
+        {"emoji": "🐶", "keywords": ["dog food", "dog treats"]},
+        {"emoji": "🐾", "keywords": ["pet food", "pet treats", "litter"]}
+      ]
+    }
+  ]
+}

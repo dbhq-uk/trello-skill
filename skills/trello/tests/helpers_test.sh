@@ -31,7 +31,8 @@ DIGEST="$REPO_ROOT/skills/board-digest/scripts/board-digest.sh"
 LIFE="$REPO_ROOT/skills/life-manager/scripts/life-board.sh"
 SETUP="$REPO_ROOT/skills/trello/scripts/trello-setup.sh"
 LIB="$REPO_ROOT/skills/trello/scripts/lib.sh"
-ALL_SCRIPTS=("$CARDS" "$BOARDS" "$DUE" "$DIGEST" "$LIFE")
+STORE="$REPO_ROOT/skills/store-sort/scripts/store-sort.sh"
+ALL_SCRIPTS=("$CARDS" "$BOARDS" "$DUE" "$DIGEST" "$LIFE" "$STORE")
 # Every script a user or an agent can run. Setup is one of them, and it is the
 # one a new user meets first, so the migration test covers it too.
 ENTRY_SCRIPTS=("${ALL_SCRIPTS[@]}" "$SETUP")
@@ -296,7 +297,7 @@ capture() {  # capture <script> [args...]
 # EVERY REQUEST GOES TO api.trello.com AND NOWHERE ELSE. This is the one
 # property worth a test on its own: the credential is in the Authorization
 # header of every call, so a request built against the wrong host hands a
-# Trello token to that host. Exercised across all five scripts and every verb
+# Trello token to that host. Exercised across all six scripts and every verb
 # that writes.
 make_sandbox
 run_in_sandbox "$CARDS" list L1 >/dev/null
@@ -309,6 +310,9 @@ run_in_sandbox "$BOARDS" list >/dev/null
 run_in_sandbox "$DUE" all 14 >/dev/null
 run_in_sandbox "$DIGEST" digest B1 7 >/dev/null
 run_in_sandbox "$LIFE" stale B1 30 >/dev/null
+run_in_sandbox "$STORE" plan L1 >/dev/null
+printf '{"store":"tesco","cards":[{"id":"CARD1","section":"Snacks","name":"🍫 a card"}]}' > "$SANDBOX/host-plan.json"
+run_in_sandbox "$STORE" apply L1 "$SANDBOX/host-plan.json" --apply >/dev/null
 
 calls=$(wc -l < "$CURL_LOG" | tr -d ' ')
 if [ "$calls" -ge 10 ]; then
@@ -563,7 +567,181 @@ capture "$LIFE" stale L1 14
 absent "stale fetches no actions when every card is plainly idle" "/actions" "$(cat "$CURL_LOG")"
 unset FAKE_DIR new_id recent
 
-# NO CONFIG MEANS NO REQUEST, AND A MESSAGE THAT NAMES THE FIX. All five
+# STORE PRESETS ARE DATA, AND THE SUITE CHECKS THEM. store-sort kept its aisle
+# order as prose the agent read card by card, and the prose had errors a check
+# would have caught: a section 100 positions wide asked to space its items
+# about 100 apart, prawns and blueberries listed twice, and one emoji each for
+# lemons and limoncello, oils and sake, yoghurt and ice cream. Every preset
+# shipped in references/stores/ is checked here.
+PRESETS=("$REPO_ROOT"/skills/store-sort/references/stores/*.json)
+eq "at least one store preset ships as data" "yes" "$([ -f "${PRESETS[0]}" ] && echo yes || echo no)"
+for f in "${PRESETS[@]}"; do
+    [ -f "$f" ] || continue
+    n="preset $(basename "$f")"
+    eq "$n is valid JSON" "ok" "$(jq -e '.sections | length > 0' "$f" >/dev/null 2>&1 && echo ok || echo invalid)"
+    eq "$n: every section has a name, an emoji and items" "" \
+       "$(jq -r '.sections[] | select((.name | type) != "string" or (.emoji | type) != "string"
+            or (.emoji | length) == 0 or (.items | type) != "array" or (.items | length) == 0) | .name // "?"' "$f")"
+    eq "$n: no two sections share a name" "" \
+       "$(jq -r '[.sections[].name | ascii_downcase] | group_by(.)[] | select(length > 1) | .[0]' "$f")"
+    eq "$n: every item has an emoji and a keyword" "" \
+       "$(jq -r '.sections[] | .name as $s | .items[] | select((.emoji | type) != "string" or (.emoji | length) == 0
+            or (.keywords | type) != "array" or (.keywords | length) == 0) | $s' "$f")"
+    eq "$n: every range is two whole numbers, low then high" "" \
+       "$(jq -r '.sections[] | select((.range | length) != 2 or (.range | map(type == "number" and . == floor) | all | not)
+            or .range[0] >= .range[1]) | .name' "$f")"
+    eq "$n: ranges rise in aisle order and do not overlap" "" \
+       "$(jq -r '.sections as $a | range(1; $a | length) | select($a[.].range[0] <= $a[. - 1].range[1])
+            | "\($a[. - 1].name) / \($a[.].name)"' "$f")"
+    eq "$n: no keyword is listed twice, in one section or in two" "" \
+       "$(jq -r '[.sections[] | .name as $s | .items[].keywords[] | {k: ascii_downcase, s: $s}]
+            | group_by(.k)[] | select(length > 1) | "\(.[0].k): \(map(.s) | join(", "))"' "$f")"
+    eq "$n: no emoji belongs to two sections" "" \
+       "$(jq -r '[.sections[] | .name as $s | ([.emoji] + [.items[].emoji]) | map(gsub("\ufe0f"; "")) | unique[]
+            | {e: ., s: $s}] | group_by(.e)[] | select(length > 1) | "\(.[0].e): \(map(.s) | join(", "))"' "$f")"
+    eq "$n: every keyword is plain words" "" \
+       "$(jq -r '.sections[].items[].keywords[] | select(test("^[\\p{L}\\p{N}][\\p{L}\\p{N} '"'"'-]*$") | not)' "$f")"
+done
+contains "the Tesco preset says it is one store's layout" "One store's layout" \
+   "$(jq -r '.about' "$REPO_ROOT/skills/store-sort/references/stores/tesco.json" 2>/dev/null)"
+STORE_MD=$(cat "$REPO_ROOT/skills/store-sort/SKILL.md")
+absent "store-sort/SKILL.md positions no card one call at a time" "trello-cards.sh position" "$STORE_MD"
+absent "store-sort/SKILL.md renames no card one call at a time" "trello-cards.sh update" "$STORE_MD"
+contains "store-sort/SKILL.md applies the whole list in one call" 'store-sort.sh apply <list-id> "$PLAN" --apply' "$STORE_MD"
+unset STORE_MD PRESETS
+
+# plan MATCHES EVERY CARD, AND WRITES NOTHING. The longest keyword wins, so
+# "black pepper" is a spice and not a bell pepper, and "coconut milk" is world
+# food and not fruit. An emoji from another section is replaced: fresh chillies
+# are Veg's 🌶️, chilli flakes are a spice.
+export FAKE_BODY='[
+  {"id":"G1","name":"Crackers","pos":1},
+  {"id":"G2","name":"bananas","pos":2},
+  {"id":"G3","name":"🥔 1.5kg baby potatoes","pos":3},
+  {"id":"G4","name":"Black pepper","pos":4},
+  {"id":"G5","name":"Mystery item","pos":5},
+  {"id":"G6","name":"Butter","pos":6},
+  {"id":"G7","name":"🌶️ Chilli flakes","pos":7},
+  {"id":"G8","name":"coconut milk","pos":8}
+]'
+: > "$CURL_LOG"
+capture "$STORE" plan L1
+eq "plan exits 0" "0" "$RC"
+eq "plan makes one request" "1" "$(wc -l < "$CURL_LOG" | tr -d ' ')"
+eq "plan writes nothing" "0" "$(grep -c -- '-X PUT' "$CURL_LOG" || true)"
+eq "plan puts every card in a section, in aisle order, with that section's emoji" "Fruit|🍌 bananas
+Veg|🥔 1.5kg baby potatoes
+Spices, Seasonings, Oils & Vinegars|🧂 Chilli flakes
+Spices, Seasonings, Oils & Vinegars|🧂 Black pepper
+Spices, Seasonings, Oils & Vinegars|🧈 Butter
+Pasta, Rice, Noodles & World Foods|🥢 coconut milk
+Snacks|🥨 Crackers
+-|Mystery item" "$(printf '%s\n' "$OUT" | jq -r '.cards[] | "\(.section // "-")|\(.name)"')"
+eq "plan records the store" "tesco" "$(printf '%s\n' "$OUT" | jq -r '.store')"
+contains "plan names the card no keyword matched" "Mystery item" "$ERR"
+
+# apply WRITES THE WHOLE LIST IN ONE CALL. It was one update and one position
+# call per card, so a 40-item list took up to 80 tool calls.
+PLAN_FILE="$SANDBOX/store-plan.json"
+printf '%s\n' "$OUT" \
+    | jq '.cards |= map(if .section == null then .section = "Snacks" | .name = "🍫 Mystery item" else . end)' \
+    > "$PLAN_FILE"
+: > "$CURL_LOG"
+capture "$STORE" apply L1 "$PLAN_FILE"
+eq "the apply dry run exits 0" "0" "$RC"
+eq "the apply dry run writes nothing" "0" "$(grep -c -- '-X PUT' "$CURL_LOG" || true)"
+contains "the apply dry run says what --apply would write" \
+   "--apply would write 8 of 8 cards: 8 to move, 7 to rename." "$OUT"
+contains "the apply dry run heads each section" "🍓 Fruit" "$OUT"
+: > "$CURL_LOG"
+capture "$STORE" apply L1 "$PLAN_FILE" --apply
+eq "apply --apply exits 0" "0" "$RC"
+eq "one apply call writes every card that changes" "8" "$(grep -c -- '-X PUT' "$CURL_LOG" || true)"
+contains "apply sends a new title with --data-urlencode" "--data-urlencode name=🍌 bananas" "$(put_for G2)"
+absent "apply does not rename a card whose title is already right" "name=" "$(put_for G3)"
+contains "apply places a card inside its section's range" "/cards/G2?pos=1499" "$(put_for G2)"
+contains "apply spreads a section's cards through its range, in plan order" "/cards/G4?pos=8499" "$(put_for G4)"
+cat "$PLAN_FILE" > "$SANDBOX/store-plan-stdin.json"
+: > "$CURL_LOG"
+OUT=$(env HOME="$SANDBOX/home" CURL_LOG="$CURL_LOG" PATH="$SANDBOX/bin:$PATH" \
+      bash "$STORE" apply L1 - < "$SANDBOX/store-plan-stdin.json" 2>&1)
+contains "apply reads a plan from stdin with -" "--apply would write 8 of 8" "$OUT"
+
+# A list already in order gets no write.
+export FAKE_BODY='[{"id":"G2","name":"🍌 bananas","pos":10},{"id":"G1","name":"🥨 Crackers","pos":20}]'
+printf '%s' '{"store":"tesco","cards":[{"id":"G2","section":"Fruit","name":"🍌 bananas"},
+  {"id":"G1","section":"Snacks","name":"🥨 Crackers"}]}' > "$PLAN_FILE"
+: > "$CURL_LOG"
+capture "$STORE" apply L1 "$PLAN_FILE" --apply
+eq "apply on a list already in order exits 0" "0" "$RC"
+eq "apply on a list already in order makes no write" "0" "$(grep -c -- '-X PUT' "$CURL_LOG" || true)"
+contains "apply on a list already in order says so" "nothing written" "$OUT"
+
+# A plan that does not fit the list or the store is refused before any write.
+export FAKE_BODY='[{"id":"G1","name":"Crackers","pos":1},{"id":"G2","name":"bananas","pos":2}]'
+check_refused() {  # check_refused <what> <plan json> <expected on stderr>
+    printf '%s' "$2" > "$PLAN_FILE"
+    : > "$CURL_LOG"
+    capture "$STORE" apply L1 "$PLAN_FILE" --apply
+    eq "apply refuses $1, exit 1" "1" "$RC"
+    contains "apply refuses $1, and says why" "$3" "$ERR"
+    eq "apply refuses $1, with no write" "0" "$(grep -c -- '-X PUT' "$CURL_LOG" || true)"
+}
+G1_OK='{"id":"G1","section":"Snacks","name":"🥨 Crackers"}'
+check_refused "a plan that leaves a card out" "{\"cards\":[$G1_OK]}" 'not in the plan: "bananas" (G2)'
+check_refused "a card not on the list" \
+    "{\"cards\":[$G1_OK,{\"id\":\"G2\",\"section\":\"Fruit\",\"name\":\"🍌 bananas\"},{\"id\":\"ZZ\",\"section\":\"Fruit\",\"name\":\"🍎 x\"}]}" \
+    "not on this list: ZZ"
+check_refused "a card with no section" "{\"cards\":[$G1_OK,{\"id\":\"G2\",\"section\":null,\"name\":\"bananas\"}]}" \
+    'no section: "bananas" (G2)'
+check_refused "a section the store does not have" \
+    "{\"cards\":[$G1_OK,{\"id\":\"G2\",\"section\":\"Garden centre\",\"name\":\"🍌 bananas\"}]}" \
+    'no section called "Garden centre"'
+check_refused "an emoji from another section" \
+    "{\"cards\":[$G1_OK,{\"id\":\"G2\",\"section\":\"Fruit\",\"name\":\"🥨 bananas\"}]}" \
+    "is planned for Fruit but starts with an emoji from Snacks"
+check_refused "a plan that is not a plan" "nope" "not JSON with a cards array"
+unset -f check_refused
+unset G1_OK
+
+# A write Trello refuses stops the run, names the card, and makes no more.
+export FAKE_DIR="$SANDBOX/storefail"; mkdir -p "$FAKE_DIR"
+echo '[{"id":"G1","name":"Crackers","pos":1},{"id":"G2","name":"bananas","pos":2}]' > "$FAKE_DIR/lists_L1_cards.json"
+echo '500 Internal Server Error' > "$FAKE_DIR/cards_G2.status"
+printf '%s' "{\"cards\":[{\"id\":\"G2\",\"section\":\"Fruit\",\"name\":\"🍌 bananas\"},
+  {\"id\":\"G1\",\"section\":\"Snacks\",\"name\":\"🥨 Crackers\"}]}" > "$PLAN_FILE"
+: > "$CURL_LOG"
+capture "$STORE" apply L1 "$PLAN_FILE" --apply
+eq "a refused write makes apply exit 1" "1" "$RC"
+contains "a refused write names the card apply stopped at" 'store-sort stopped at "bananas" (G2)' "$ERR"
+contains "a refused write says the list is partly sorted" "only partly sorted" "$ERR"
+eq "apply makes no write after the refused one" "" "$(put_for G1)"
+unset FAKE_DIR FAKE_BODY PLAN_FILE
+
+# THE USER'S OWN STORE, AND THE SHIPPED ONES. ~/.dbhq/trello/stores/ is read
+# first, and a store name cannot climb out of either directory.
+mkdir -p "$SANDBOX/home/.dbhq/trello/stores"
+echo '{"name":"Corner shop","about":"One small shop.","sections":[{"name":"Everything","emoji":"🛒","range":[1000,1999],"items":[{"emoji":"🛒","keywords":["milk"]}]}]}' \
+    > "$SANDBOX/home/.dbhq/trello/stores/corner.json"
+capture "$STORE" sections corner
+contains "sections reads the user's own store" "1. 🛒 Everything" "$OUT"
+capture "$STORE" stores
+eq "stores lists the user's stores and the shipped ones" "corner
+tesco" "$OUT"
+capture "$STORE" sections
+contains "sections defaults to the Tesco preset" "1. 🍓 Fruit" "$OUT"
+contains "sections says the preset is one store's layout" "One store's layout" "$OUT"
+capture "$STORE" sections ../../etc/passwd
+eq "a store name with a path in it is refused" "1" "$RC"
+contains "a store name with a path in it says what a name is" "lowercase letters, digits and hyphens" "$ERR"
+capture "$STORE" sections nosuch
+contains "an unknown store names the stores there are" "no store preset called 'nosuch'. There are: corner tesco" "$ERR"
+rm -rf "$SANDBOX/home/.dbhq/trello/stores"
+export FAKE_BODY='invalid token' FAKE_STATUS=401
+check_error "store-sort plan" "$STORE" plan L1
+unset FAKE_BODY FAKE_STATUS
+
+# NO CONFIG MEANS NO REQUEST, AND A MESSAGE THAT NAMES THE FIX. All six
 # scripts, because the first one an agent reaches for is the one a new user
 # meets.
 for s in "${ALL_SCRIPTS[@]}"; do
@@ -626,7 +804,7 @@ done
 # the trello skill beside them. Installed on their own - the skills CLI lets a
 # user pick one - they must name the missing skill and how to add it, not fail
 # with "No such file or directory" from a source line.
-for s in "$DIGEST" "$DUE" "$LIFE"; do
+for s in "$DIGEST" "$DUE" "$LIFE" "$STORE"; do
     skill=$(basename "$(dirname "$(dirname "$s")")")
     lone=$(mktemp -d); mkdir -p "$lone/skills" "$lone/bin" "$lone/home/.dbhq/trello"
     cp -R "$REPO_ROOT/skills/$skill" "$lone/skills/$skill"
@@ -642,17 +820,13 @@ for s in "$DIGEST" "$DUE" "$LIFE"; do
     rm -rf "$lone"
 done
 
-# AND THE DOCS SAY SO BEFORE ANYTHING RUNS. store-sort has no script to print
-# that message, so its SKILL.md is the only thing that can - and a user picking
-# skills one by one reads the README and the SKILL.md, not the error.
+# AND THE DOCS SAY SO BEFORE ANYTHING RUNS. A user picking skills one by one
+# reads the README and the SKILL.md, not the error.
 for skill in store-sort board-digest due-radar life-manager; do
     contains "$skill/SKILL.md says it needs trello, with the install command" \
        "npx skills add dbhq-uk/trello-skill --skill trello --skill $skill" \
        "$(cat "$REPO_ROOT/skills/$skill/SKILL.md")"
 done
-contains "store-sort/SKILL.md tells the agent to check trello is there first" \
-   'check that `${CLAUDE_SKILL_DIR}/../trello/scripts/` exists' \
-   "$(cat "$REPO_ROOT/skills/store-sort/SKILL.md")"
 contains "the README install section says the other four need trello" \
    "each of those four must have \`trello\` installed beside it" "$(tr '\n' ' ' < "$REPO_ROOT/README.md")"
 contains "the README shows installing trello alongside a single skill" \
@@ -665,7 +839,7 @@ contains "the README shows installing trello alongside a single skill" \
 bare=$(for f in "$REPO_ROOT"/skills/*/SKILL.md; do
     awk -v f="${f#"$REPO_ROOT"/}" '/^[[:space:]]*```/{fence=!fence; next}
         fence { line=$0
-                while (match(line, /[[:alnum:]_.\/${}-]*(trello-cards|trello-boards|trello-setup|board-digest|due-radar|life-board)\.sh/)) {
+                while (match(line, /[[:alnum:]_.\/${}-]*(trello-cards|trello-boards|trello-setup|board-digest|due-radar|life-board|store-sort)\.sh/)) {
                     tok=substr(line, RSTART, RLENGTH)
                     if (tok !~ /^\$\{CLAUDE_SKILL_DIR\}\//) print f ": " $0
                     line=substr(line, RSTART+RLENGTH)
