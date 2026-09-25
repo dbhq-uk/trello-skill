@@ -40,6 +40,16 @@ trello_load_config() {
     TOKEN=$(jq -r '.token' "$TRELLO_CONFIG_FILE")
 }
 
+# The key and token travel in an Authorization header that curl reads from
+# stdin (`-H @-`), never as a curl argument. Anything in argv - a URL with
+# ?key=...&token=... included - can be read by every local user from `ps` or
+# /proc/<pid>/cmdline while the request runs. printf is a bash builtin, so
+# writing the header starts no process whose command line holds the token.
+# Trello documents this header form alongside the query-string one.
+trello_auth_header() {
+    printf 'Authorization: OAuth oauth_consumer_key="%s", oauth_token="%s"\n' "$API_KEY" "$TOKEN"
+}
+
 # A failed request inside a pipeline (`api_get ... | jq ...`) must fail the
 # pipeline, not hand jq an error message and carry on with whatever jq makes
 # of it.
@@ -60,11 +70,11 @@ set -o pipefail
 api() {
     local method="$1" endpoint="$2" query="${3:-}"
     if [ $# -ge 3 ]; then shift 3; else shift $#; fi
-    local url="$TRELLO_BASE_URL$endpoint?key=$API_KEY&token=$TOKEN"
-    [ -n "$query" ] && url="$url&$query"
+    local url="$TRELLO_BASE_URL$endpoint"
+    [ -n "$query" ] && url="$url?$query"
 
     local out status body
-    if ! out=$(curl -sS -X "$method" -w '\n%{http_code}' "$url" "$@"); then
+    if ! out=$(trello_auth_header | curl -sS -X "$method" -H @- -w '\n%{http_code}' "$url" "$@"); then
         echo "Error: could not reach Trello for $method $endpoint" >&2
         return 1
     fi

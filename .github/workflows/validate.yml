@@ -71,7 +71,7 @@ jobs:
       #
       # What it is actually guarding, in order of what it would cost to get
       # wrong: every request goes to api.trello.com and nowhere else (the
-      # credential is in the query string of every call, so a request built
+      # credential is in the Authorization header of every call, so a request built
       # against the wrong host hands a Trello token to that host); caller text
       # is sent with --data-urlencode rather than pasted into the query string;
       # and every entry script runs the ~/.trello migration, guarded, which is

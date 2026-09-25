@@ -157,8 +157,9 @@ Apply a label with `trello-cards.sh`. Label IDs come from
 trello-cards.sh label-add <card-id> <label-id>
 ```
 
-The script reads credentials from the config itself, so no key or token ever
-reaches the command line, the shell history, or `ps` output.
+The scripts read credentials from the config themselves and send them in a
+request header fed to curl on stdin, so no key or token ever reaches the
+command line, the shell history, or `ps` output.
 
 ## Helper script
 

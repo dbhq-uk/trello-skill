@@ -12,7 +12,7 @@ Manage Trello boards, lists, and cards via the Trello REST API.
 **Every card must carry a category label. No exceptions.** Whenever you create a card, sort/order, or "organise / align" a board, ensure EVERY card on the affected list(s) has a label - not just the top few you reordered. "Order the backlog" or "align with the roadmap" means **categorise the whole list**, then order it - never leave a flat, unlabelled tail.
 
 - Read the board's existing labels first (`GET /1/boards/{boardId}/labels`); reuse them, don't invent a parallel taxonomy. Typical set: Business, Feature, Pipeline, DevOps/Infra, Data, UI/UX, Bug/Fix.
-- `trello-cards.sh` reads **and** writes labels: `labels` to show them, `label-add <card-id> <label-id>` and `label-remove` to change them. Label IDs come from `trello-boards.sh labels <board-id>`. Credentials stay inside the script, so no key or token reaches the command line.
+- `trello-cards.sh` reads **and** writes labels: `labels` to show them, `label-add <card-id> <label-id>` and `label-remove` to change them. Label IDs come from `trello-boards.sh labels <board-id>`. The scripts send the key and token in a request header fed to curl on stdin, so neither ever reaches a command line or `ps` output.
 - When you create a card, label it in the same pass.
 - After any board-org task, verify zero unlabelled cards remain on the lists you touched.
 

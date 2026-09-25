@@ -183,8 +183,17 @@ JSON
 # Records every argument, one invocation per line, and answers with JSON shaped
 # enough for the callers' jq checks. Like the real curl, it prints the status
 # after the body only when asked with -w, and exits 0 whatever the status.
-# FAKE_BODY and FAKE_STATUS override the answer.
+# FAKE_BODY and FAKE_STATUS override the answer. Headers read from stdin
+# (-H @-) go to $CURL_LOG.headers, one line per request, so a test can see
+# what travelled in a header rather than on the command line.
 printf '%s\n' "$*" >> "$CURL_LOG"
+prev=""
+for a in "$@"; do
+    if [ "$prev" = "-H" ] && [ "$a" = "@-" ]; then
+        printf '%s\n' "$(cat)" >> "$CURL_LOG.headers"
+    fi
+    prev="$a"
+done
 default='[{"id":"CARD1","name":"a card","desc":"","pos":1,"labels":[],"due":null,"dueComplete":false,"url":"u","idList":"L1","idBoard":"B1","lists":[],"text":"c","date":"2026-06-01T00:00:00.000Z","memberCreator":{"fullName":"n"},"checkItems":[]}]'
 printf '%s\n' "${FAKE_BODY-$default}"
 for a in "$@"; do [ "$a" = "-w" ] && printf '%s' "${FAKE_STATUS:-200}"; done
@@ -192,7 +201,7 @@ exit 0
 SH
     chmod +x "$SANDBOX/bin/curl"
     export CURL_LOG="$SANDBOX/curl.log"
-    : > "$CURL_LOG"
+    : > "$CURL_LOG"; : > "$CURL_LOG.headers"
 }
 run_in_sandbox() {  # run_in_sandbox <script> [args...]
     local script="$1"; shift
@@ -210,9 +219,10 @@ capture() {  # capture <script> [args...]
 }
 
 # EVERY REQUEST GOES TO api.trello.com AND NOWHERE ELSE. This is the one
-# property worth a test on its own: the credential is in the query string of
-# every call, so a request built against the wrong host hands a Trello token to
-# that host. Exercised across all five scripts and every verb that writes.
+# property worth a test on its own: the credential is in the Authorization
+# header of every call, so a request built against the wrong host hands a
+# Trello token to that host. Exercised across all five scripts and every verb
+# that writes.
 make_sandbox
 run_in_sandbox "$CARDS" list L1 >/dev/null
 run_in_sandbox "$CARDS" read CARD1 >/dev/null
@@ -235,10 +245,25 @@ fi
 offsite=$(grep -oE 'https://[^ "?]+' "$CURL_LOG" | grep -v '^https://api\.trello\.com/1' || true)
 eq "every request goes to https://api.trello.com/1" "" "$offsite"
 
-leaked=$(grep -c 'TESTKEY' "$CURL_LOG" || true)
-eq "every request carries the key from config.json" "$calls" "$leaked"
-leaked=$(grep -c 'TESTTOKEN' "$CURL_LOG" || true)
-eq "every request carries the token from config.json" "$calls" "$leaked"
+# THE KEY AND TOKEN NEVER REACH THE COMMAND LINE. Every local user can read a
+# running process's arguments from `ps` or /proc/<pid>/cmdline, so a token in
+# the URL is a token on show for as long as the request runs. They go in an
+# Authorization header that curl reads from stdin instead.
+eq "no request has the key in its curl arguments" "0" "$(grep -c 'TESTKEY' "$CURL_LOG" || true)"
+eq "no request has the token in its curl arguments" "0" "$(grep -c 'TESTTOKEN' "$CURL_LOG" || true)"
+eq "every request reads its headers from stdin" "$calls" "$(grep -c -- '-H @-' "$CURL_LOG" || true)"
+eq "every request sends the key from config.json in the header" "$calls" \
+   "$(grep -c 'oauth_consumer_key="TESTKEY"' "$CURL_LOG.headers" || true)"
+eq "every request sends the token from config.json in the header" "$calls" \
+   "$(grep -c 'oauth_token="TESTTOKEN"' "$CURL_LOG.headers" || true)"
+contains "the header is Trello's OAuth form" \
+   'Authorization: OAuth oauth_consumer_key="TESTKEY", oauth_token="TESTTOKEN"' "$(head -1 "$CURL_LOG.headers")"
+
+# And no script, setup included, builds a URL with the key or token in it.
+for s in "${ENTRY_SCRIPTS[@]}" "$LIB"; do
+    eq "$(basename "$s") builds no URL with key= or token= in it" "" \
+       "$(grep -nE '(key|token)=\$' "$s" || true)"
+done
 
 # CALLER TEXT IS URLENCODED, NOT PASTED IN. curl sends -d raw, so an & in a
 # card title truncates the value and a + arrives as a space - the comment above
@@ -248,7 +273,7 @@ run_in_sandbox "$CARDS" create L1 'Pay VAT & file CT600' 'C++ notes' >/dev/null
 line=$(cat "$CURL_LOG")
 contains "create sends the title with --data-urlencode" "--data-urlencode name=Pay VAT & file CT600" "$line"
 contains "create sends the description with --data-urlencode" "--data-urlencode desc=C++ notes" "$line"
-absent "create never puts caller text in the query string" "?key=TESTKEY&token=TESTTOKEN&name=" "$line"
+absent "create never puts caller text in the query string" "name=" "$(echo "$line" | grep -oE 'https://[^ ]+')"
 : > "$CURL_LOG"
 run_in_sandbox "$CARDS" comment CARD1 'see & compare' >/dev/null
 contains "comment sends the text with --data-urlencode" "--data-urlencode text=see & compare" "$(cat "$CURL_LOG")"
