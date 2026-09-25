@@ -68,6 +68,7 @@ Note: Trello sometimes auto-adjusts pos values (e.g. it picks 12500 instead of 1
 - Optional items: append ` (optional)`
 - Sentence-case the item name (no all-caps, no all-lowercase)
 - Fix obvious typos in the user's input but flag the correction (e.g. "Pinot Noi" → "Pinot Noir")
+- On a shopping list the emoji at the start of each card's title is its category, so shopping cards carry no labels. Do not add one, even on a board whose other lists use labels.
 
 ## Pantry-staples check (optional)
 

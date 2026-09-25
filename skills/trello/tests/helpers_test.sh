@@ -939,6 +939,26 @@ eq "no SKILL.md or reference offers \"I'm stuck\" as a trigger" "" \
    "$(grep -rn -i "\"I'm stuck\"" "$REPO_ROOT/skills" --include='*.md' || true)"
 unset -f phrases_of
 
+# THE LABEL RULE ONLY BINDS A BOARD THAT USES LABELS. trello/SKILL.md said
+# every card on any board must carry a label, "No exceptions", with a
+# developer label set and "align with the roadmap" as the example - so the
+# agent labelled grocery items that store-sort categorises by emoji. The two
+# skills now carry the same shopping-list sentence, word for word.
+TRELLO_MD=$(cat "$REPO_ROOT/skills/trello/SKILL.md")
+STORE_MD=$(cat "$REPO_ROOT/skills/store-sort/SKILL.md")
+absent "trello/SKILL.md does not demand a label on every card" "No exceptions" "$TRELLO_MD"
+contains "trello/SKILL.md limits the label rule to boards that use labels" \
+   "On a board that uses labels, every card on a list you touch carries one." "$TRELLO_MD"
+contains "trello/SKILL.md leaves an unlabelled board unlabelled" \
+   "A board whose cards carry no labels stays that way" "$TRELLO_MD"
+for name in "Typical set" "Business, Feature" "DevOps" "UI/UX" "Bug/Fix" "roadmap"; do
+    absent "trello/SKILL.md suggests no label name or roadmap wording: $name" "$name" "$TRELLO_MD"
+done
+SHOPPING_RULE="On a shopping list the emoji at the start of each card's title is its category, so shopping cards carry no labels."
+contains "trello/SKILL.md gives the shopping-list label rule" "$SHOPPING_RULE" "$TRELLO_MD"
+contains "store-sort/SKILL.md gives the same shopping-list label rule" "$SHOPPING_RULE" "$STORE_MD"
+unset TRELLO_MD STORE_MD SHOPPING_RULE
+
 rm -rf "$SANDBOX"
 
 ########################################
