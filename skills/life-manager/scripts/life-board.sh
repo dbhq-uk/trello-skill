@@ -27,7 +27,6 @@ resolve_config() {
     local candidates=(
         "$LIFE_MANAGER_CONFIG"
         "./life-manager.yaml"
-        "./system/life-manager.yaml"
         "$HOME/.dbhq/trello/life-manager.yaml"
     )
     local c
@@ -41,9 +40,15 @@ cmd_config() {
     local path
     if ! path=$(resolve_config); then
         echo "No config found. Looked for:" >&2
-        echo "  \$LIFE_MANAGER_CONFIG, ./life-manager.yaml, ./system/life-manager.yaml, ~/.dbhq/trello/life-manager.yaml" >&2
+        echo "  \$LIFE_MANAGER_CONFIG, ./life-manager.yaml, ~/.dbhq/trello/life-manager.yaml" >&2
         echo "" >&2
-        echo "This is setup mode - offer to create one." >&2
+        # ./system/life-manager.yaml was read until 25 Sep 2026. A config left
+        # there is the user's, so say where it went rather than offer setup.
+        if [ -f ./system/life-manager.yaml ]; then
+            echo "Found ./system/life-manager.yaml, which is no longer read. Move it to ./life-manager.yaml, or set LIFE_MANAGER_CONFIG to its path." >&2
+        else
+            echo "This is setup mode - offer to create one." >&2
+        fi
         exit 1
     fi
     echo "config: $path"

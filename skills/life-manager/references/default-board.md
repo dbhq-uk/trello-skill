@@ -73,13 +73,9 @@ Grouping also surfaces things no individual card does: that eight open items bel
 
 The category order belongs to the user and lives in `label_order` in their config. Entities before domains usually reads best for someone who works for themselves, but it is their call, not the skill's.
 
-```bash
-# entries are "Label" or "Label:emoji", from label_order + label_emoji in config
-${CLAUDE_SKILL_DIR}/scripts/life-board.sh sort <list-id> "Now:🔥,Health:❤️,Home:🏠"
-${CLAUDE_SKILL_DIR}/scripts/life-board.sh sort <list-id> "Now:🔥,Health:❤️,Home:🏠" --apply
-```
+`life-board.sh sort` does the ordering; SKILL.md gives the command.
 
-An emoji per category, stamped on the card title, makes the grouping legible in every view - including on a phone, where a label colour is a thin stripe and nothing else. Ask the user for their emoji rather than choosing for them; they will see it every day.
+An emoji per category, stamped on the card title, makes the grouping legible in every view - including on a phone, where a label colour is a thin stripe and nothing else. It also survives every export and search, so the category travels with the card instead of living in the board's metadata. Ask the user for their emoji rather than choosing for them; they will see it every day.
 
 Unlabelled cards sink to the bottom deliberately. They are not finished work, they are undone categorisation, and burying them mid-list hides that.
 

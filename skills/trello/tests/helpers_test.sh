@@ -187,15 +187,17 @@ mkdir -p "$fixture/work/system" "$fixture/home/.dbhq/trello"
   HOME="$fixture/home" LIFE_MANAGER_CONFIG="" resolve_config ) > "$fixture/got" 2>&1
 eq "resolve_config falls back to ~/.dbhq/trello" "$fixture/home/.dbhq/trello/life-manager.yaml" "$(cat "$fixture/got")"
 
+# ./system/life-manager.yaml was one user's layout, in a skill that says
+# nothing personal lives in it. It is no longer read.
 : > "$fixture/work/system/life-manager.yaml"
 ( cd "$fixture/work" || exit 1
   HOME="$fixture/home" LIFE_MANAGER_CONFIG="" resolve_config ) > "$fixture/got" 2>&1
-eq "resolve_config prefers ./system over home" "./system/life-manager.yaml" "$(cat "$fixture/got")"
+eq "resolve_config no longer reads ./system/life-manager.yaml" "$fixture/home/.dbhq/trello/life-manager.yaml" "$(cat "$fixture/got")"
 
 : > "$fixture/work/life-manager.yaml"
 ( cd "$fixture/work" || exit 1
   HOME="$fixture/home" LIFE_MANAGER_CONFIG="" resolve_config ) > "$fixture/got" 2>&1
-eq "resolve_config prefers ./ over ./system" "./life-manager.yaml" "$(cat "$fixture/got")"
+eq "resolve_config prefers ./ over home" "./life-manager.yaml" "$(cat "$fixture/got")"
 
 : > "$fixture/explicit.yaml"
 ( cd "$fixture/work" || exit 1
@@ -207,6 +209,52 @@ eq "LIFE_MANAGER_CONFIG beats everything" "$fixture/explicit.yaml" "$(cat "$fixt
 eq "resolve_config returns 1 when there is no config anywhere" "1" "$?"
 rm -rf "$fixture"
 unset -f resolve_config
+
+# A config left at the old ./system path is named, rather than setup offered
+# over the top of it. Run end to end: config makes no request, so no sandbox.
+# A curl that refuses on PATH, so nothing here can reach the network.
+fixture=$(mktemp -d)
+mkdir -p "$fixture/work/system" "$fixture/home/.dbhq/trello" "$fixture/bin"
+printf '#!/bin/bash\nexit 99\n' > "$fixture/bin/curl"; chmod +x "$fixture/bin/curl"
+echo '{"api_key":"K","token":"T"}' > "$fixture/home/.dbhq/trello/config.json"
+: > "$fixture/work/system/life-manager.yaml"
+life_in_fixture() { (cd "$fixture/work" && HOME="$fixture/home" PATH="$fixture/bin:$PATH" LIFE_MANAGER_CONFIG="" bash "$LIFE" "$@" 2>&1); }
+out=$(life_in_fixture config; echo "rc=$?")
+contains "config names a file left at ./system/life-manager.yaml" "no longer read" "$out"
+contains "and says how to use it" "LIFE_MANAGER_CONFIG" "$out"
+absent "and does not offer setup over it" "setup mode" "$out"
+contains "and exits non-zero" "rc=1" "$out"
+rm -f "$fixture/work/system/life-manager.yaml"
+out=$(life_in_fixture config)
+contains "with no config anywhere, config offers setup" "This is setup mode" "$out"
+LIFE_HELP=$(life_in_fixture help)
+rm -rf "$fixture"
+unset -f life_in_fixture
+
+# life-manager's docs say what its script does. SKILL.md said audit reported
+# stale cards, which it never has; it offered "ticks since the last run", when
+# nothing records a run; it listed the personal ./system path; and it asked for
+# "--data-urlencode-safe" values in a YAML file. It had also grown to repeat
+# default-board.md, so its prose is held under a ceiling.
+LIFE_MD=$(cat "$REPO_ROOT/skills/life-manager/SKILL.md")
+LIFE_REFS=$(cat "$REPO_ROOT/skills/life-manager/references/"*.md)
+eq "life-manager/SKILL.md does not say audit finds stale cards" "" \
+   "$(grep -n 'life-board.sh audit' <<< "$LIFE_MD" | grep -i stale || true)"
+contains "life-board.sh help lists audit" "  audit <board-id>" "$LIFE_HELP"
+absent "life-board.sh help does not say audit finds stale cards" "stale" "$(grep -A1 '^  audit' <<< "$LIFE_HELP")"
+for claim in "since the last run" "since last time" "system/life-manager.yaml" "data-urlencode"; do
+    eq "life-manager's docs do not say \"$claim\"" "" \
+       "$(printf '%s\n%s\n' "$LIFE_MD" "$LIFE_REFS" | grep -n -- "$claim" || true)"
+done
+contains "the config example has a Long Burn threshold" "long_burn: 30" "$LIFE_MD"
+absent "SKILL.md leaves the emoji rationale to default-board.md" "Why stamp the emoji" "$LIFE_MD"
+words=$(awk '/^---$/{n++; next} n>=2' <<< "$LIFE_MD" | awk '/^```/{f=!f; next} !f' | wc -w | tr -d ' ')
+if [ "$words" -le 1300 ]; then
+    PASS=$((PASS+1)); printf 'ok   - life-manager/SKILL.md prose is %s words, under 1,300\n' "$words"
+else
+    FAIL=$((FAIL+1)); printf 'FAIL - life-manager/SKILL.md prose is %s words, over 1,300 - move rationale to references/\n' "$words"
+fi
+unset LIFE_MD LIFE_REFS LIFE_HELP words
 
 ########################################
 # PART 2 - each script end to end, with a fake curl
