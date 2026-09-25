@@ -53,7 +53,7 @@ cmd_stale() {
     local list_id="$1" days="${2:-14}" cutoff
     [ -z "$list_id" ] && { echo "Usage: life-board.sh stale <list-id> [days]" >&2; exit 1; }
     cutoff=$(days_ago_iso "$days")
-    api_get "/lists/$list_id/cards" "fields=name,dateLastActivity" \
+    api_get_all "/lists/$list_id/cards" "fields=name,dateLastActivity" \
         | jq -r --arg c "$cutoff" '
             [.[] | select(.dateLastActivity < $c)]
             | if length == 0 then "  (nothing stale)"
@@ -79,7 +79,7 @@ cmd_audit() {
     echo ""
     echo "=== Cards with no checklist and no description ==="
     echo "    (candidates for breaking down - a bare title is often a hidden project)"
-    api_get "/boards/$board_id/cards" "fields=name,desc,idList&checklists=all" \
+    api_get_all "/boards/$board_id/cards" "fields=name,desc,idList&checklists=all" \
         | jq -r '
             [.[] | select((.checklists | length) == 0 and (.desc | length) == 0) | .name] as $b
             | if ($b | length) == 0 then "  (none)"
@@ -131,7 +131,7 @@ cmd_sort() {
                  end )')
 
     local plan
-    plan=$(api_get "/lists/$list_id/cards" "fields=name,labels" | jq -r --argjson ord "$order_json" '
+    plan=$(api_get_all "/lists/$list_id/cards" "fields=name,labels" | jq -r --argjson ord "$order_json" '
         # Strip a leading run of emoji and the whitespace around it. Repeats
         # until nothing changes, so a stamp this order uses is removed even if
         # it is not in the regex (a bare U+2764 with no U+FE0F, say).

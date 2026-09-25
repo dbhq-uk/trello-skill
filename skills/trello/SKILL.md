@@ -58,7 +58,7 @@ ${CLAUDE_SKILL_DIR}/scripts/trello-boards.sh labels <board-id>
 # List cards in a list
 ${CLAUDE_SKILL_DIR}/scripts/trello-cards.sh list <list-id>
 
-# List more cards
+# List more cards (the default is 50, and the output says when it left some out)
 ${CLAUDE_SKILL_DIR}/scripts/trello-cards.sh list <list-id> 100
 
 # Get JSON output (for scripting/sorting)
@@ -165,7 +165,7 @@ Always confirm before creating:
 
 ## Error Handling
 
-Every script exits non-zero and prints Trello's HTTP status and message on stderr when a request fails. Read that before telling the user anything: an error is never an empty result, and "No cards found." means Trello returned an empty list. An unknown verb prints usage on stderr and exits 2; `help` prints it on stdout.
+Every script exits non-zero and prints Trello's HTTP status and message on stderr when a request fails. Long lists (a board's cards, its activity, a card's comments) are fetched page by page, so nothing is cut at Trello's 1000-result limit; if a result is ever still incomplete, stderr says "capped at N" and you must tell the user it is partial. Read that before telling the user anything: an error is never an empty result, and "No cards found." means Trello returned an empty list. An unknown verb prints usage on stderr and exits 2; `help` prints it on stdout.
 
 - **Invalid credentials** (HTTP 401, `invalid key` or `invalid token`): Re-run setup
 - **Board/list not found**: Check ID or use find command

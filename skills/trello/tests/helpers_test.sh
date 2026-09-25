@@ -195,7 +195,21 @@ for a in "$@"; do
     prev="$a"
 done
 default='[{"id":"CARD1","name":"a card","desc":"","pos":1,"labels":[],"due":null,"dueComplete":false,"url":"u","idList":"L1","idBoard":"B1","lists":[],"text":"c","date":"2026-06-01T00:00:00.000Z","memberCreator":{"fullName":"n"},"checkItems":[]}]'
-printf '%s\n' "${FAKE_BODY-$default}"
+# FAKE_DIR answers by path, for tests that need a different answer per
+# endpoint or answers too big for an environment variable. The file is the
+# path after /1/ with / turned to _, so /boards/B1/actions is
+# boards_B1_actions.json; a request with before= in it reads
+# boards_B1_actions.before.json instead. A path with no file falls through to
+# FAKE_BODY.
+url=""
+for a in "$@"; do case "$a" in https://*) url="$a" ;; esac; done
+key="${url#https://api.trello.com/1/}"; key="${key%%\?*}"; key="${key//\//_}"
+case "$url" in *before=*) key="$key.before" ;; esac
+if [ -n "${FAKE_DIR:-}" ] && [ -f "$FAKE_DIR/$key.json" ]; then
+    cat "$FAKE_DIR/$key.json"; echo
+else
+    printf '%s\n' "${FAKE_BODY-$default}"
+fi
 for a in "$@"; do [ "$a" = "-w" ] && printf '%s' "${FAKE_STATUS:-200}"; done
 exit 0
 SH
@@ -520,6 +534,73 @@ eq "labels with no board id makes no request" "0" "$(wc -l < "$CURL_LOG" | tr -d
 out=$(run_in_sandbox "$CARDS" create L1)
 contains "create with a missing title prints its own usage line" "Usage: trello-cards.sh create" "$out"
 eq "create with a missing title makes no request" "0" "$(wc -l < "$CURL_LOG" | tr -d ' ')"
+
+# PAGING. Trello answers at most 1000 results to one request and says nothing
+# when it stops, so one page read as the whole answer made "the last 7 days"
+# of a busy board its last few hours, and cut a card's comments at 50. The fake
+# serves a full page of 1000, then 3 more to a request that carries before=.
+# Ids are fixed-width, so the smallest is the oldest, as with Trello's.
+export FAKE_DIR="$SANDBOX/pages"; mkdir -p "$FAKE_DIR"
+# fake_actions <from> <to> <type>: one action per n, newest (highest) first.
+fake_actions() {
+    jq -n --argjson a "$1" --argjson b "$2" --arg t "$3" '[range($a; $b; -1)
+        | { id: (tostring | ("0" * (24 - length)) + .), type: $t,
+            date: "2026-06-14T10:00:00.000Z",
+            data: { card: { name: "card \(.)" }, text: "comment \(.)" },
+            memberCreator: { fullName: "n" } }]'
+}
+echo '{"name":"Busy board","url":"u"}' > "$FAKE_DIR/boards_B1.json"
+echo '[]' > "$FAKE_DIR/boards_B1_lists.json"
+echo '[]' > "$FAKE_DIR/boards_B1_cards.json"
+fake_actions 2000 1000 createCard > "$FAKE_DIR/boards_B1_actions.json"
+fake_actions 1000 997 createCard  > "$FAKE_DIR/boards_B1_actions.before.json"
+: > "$CURL_LOG"
+capture "$DIGEST" digest B1 7
+eq "digest over two pages exits 0" "0" "$RC"
+eq "digest reports every action in the window, across both pages" "1003" \
+   "$(grep -c ' created: card ' <<< "$OUT")"
+contains "digest asks for the maximum page of actions" "/boards/B1/actions?filter=createCard,commentCard,updateCard&since=" \
+   "$(grep '/actions?' "$CURL_LOG" | head -1)"
+contains "digest's first page asks for 1000" "limit=1000" "$(grep '/actions?' "$CURL_LOG" | head -1)"
+contains "digest asks for the next page from the oldest id it has seen" \
+   "before=000000000000000000001001" "$(grep '/actions?' "$CURL_LOG" | sed -n 2p)"
+eq "digest stops at the short page" "2" "$(grep -c '/actions?' "$CURL_LOG")"
+absent "an answer that fitted is not called capped" "capped" "$ERR"
+
+fake_actions 2000 1000 commentCard > "$FAKE_DIR/cards_CARD1_actions.json"
+fake_actions 1000 997 commentCard  > "$FAKE_DIR/cards_CARD1_actions.before.json"
+capture "$CARDS" comments CARD1
+eq "comments returns every comment on a card with more than 1000" "1003" \
+   "$(grep -c 'n: comment ' <<< "$OUT")"
+
+# Still more after the last page it will fetch: the result says it was cut.
+export TRELLO_MAX_PAGES=1
+capture "$CARDS" comments CARD1
+eq "a capped result is still printed" "1000" "$(grep -c 'n: comment ' <<< "$OUT")"
+contains "a capped result says so" "capped at 1000 results" "$ERR"
+unset TRELLO_MAX_PAGES
+
+# A full page whose cursor never moves - an endpoint that ignores before= -
+# must end, and say it was capped, not loop.
+cp "$FAKE_DIR/cards_CARD1_actions.json" "$FAKE_DIR/cards_CARD1_actions.before.json"
+: > "$CURL_LOG"
+capture "$CARDS" comments CARD1
+eq "a page that repeats ends the paging" "2" "$(grep -c '/actions?' "$CURL_LOG")"
+contains "and the result says it was capped" "capped at 1000 results" "$ERR"
+
+# list shows <count> cards in list order, and says when that left some out.
+jq -n '[range(73) | {id: "C\(.)", name: "card \(.)", desc: "", pos: (73 - .), labels: []}]' \
+    > "$FAKE_DIR/lists_L1_cards.json"
+capture "$CARDS" list L1
+eq "list shows 50 cards by default" "50" "$(grep -c '^\[C' <<< "$OUT")"
+contains "list says how many it left out" "(showing 50 of 73 cards" "$OUT"
+eq "list shows them in list order" "[C72] card 72" "$(head -1 <<< "$OUT")"
+capture "$CARDS" list L1 100
+eq "a larger count shows them all" "73" "$(grep -c '^\[C' <<< "$OUT")"
+absent "and does not claim any were left out" "showing" "$OUT"
+capture "$CARDS" list L1 lots
+eq "a count that is not a number is refused" "1" "$RC"
+unset FAKE_DIR
 
 rm -rf "$SANDBOX"
 

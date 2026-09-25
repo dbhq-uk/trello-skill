@@ -96,6 +96,60 @@ api_post()   { local e="$1"; shift; api POST "$e" "" "$@"; }
 api_put()    { local e="$1"; shift; api PUT "$e" "" "$@"; }
 api_delete() { api DELETE "$1"; }
 
+# Trello answers at most 1000 results to one request for a long list - a
+# board's cards, its actions, a card's comments - and says nothing when it
+# stops. So a script that trusts one page reports "the last 7 days" of a busy
+# board as its last few hours. The fix is to ask again with `before` set to the
+# oldest id seen, until a page comes back short.
+TRELLO_PAGE_SIZE=1000
+# A backstop, not a target: 25 pages is 25,000 results. Reaching it is
+# reported, never silent. Tests lower it to prove the report.
+TRELLO_MAX_PAGES="${TRELLO_MAX_PAGES:-25}"
+
+# api_get_all <endpoint> [query]
+#
+# Every page of a list endpoint, as one JSON array in the order Trello sent it
+# (newest first for cards and actions), with no id twice. Returns 1 if any page
+# fails, like api(). When results are still left after TRELLO_MAX_PAGES pages,
+# or Trello keeps sending the same page, it prints the result it has and a
+# "capped at N" line on stderr, so a cut-off list is never passed off as whole.
+#
+# The ids Trello uses start with their creation time in hex, all the same
+# length, so the smallest id in a page is the oldest one - which is the cursor
+# `before` wants.
+api_get_all() {
+    local endpoint="$1" query="${2:-}" tmp pages=0 n oldest last="" capped=""
+    [ -n "$query" ] && query="$query&"
+    tmp=$(mktemp -d) || return 1
+    while :; do
+        pages=$((pages + 1))
+        if ! api_get "$endpoint" "${query}limit=$TRELLO_PAGE_SIZE${last:+&before=$last}" \
+                > "$tmp/$(printf '%05d' "$pages").json"; then
+            rm -rf "$tmp"
+            return 1
+        fi
+        read -r n oldest < <(jq -r '"\(length) \(map(.id // empty) | min // "")"' \
+            "$tmp/$(printf '%05d' "$pages").json") || { rm -rf "$tmp"; return 1; }
+        # A short page is the last one. A page longer than the limit means this
+        # endpoint ignores `limit` and sent the lot in one go.
+        [ "$n" -ne "$TRELLO_PAGE_SIZE" ] && break
+        # Trello sent a full page but the cursor did not move: it is ignoring
+        # `before` here, so asking again would loop.
+        if [ -z "$oldest" ] || [ "$oldest" = "$last" ]; then capped=1; break; fi
+        if [ "$pages" -ge "$TRELLO_MAX_PAGES" ]; then capped=1; break; fi
+        last="$oldest"
+    done
+    jq -s 'add // [] | reduce .[] as $x ({seen: {}, out: []};
+            ($x.id | tostring) as $k
+            | if .seen[$k] then . else .seen[$k] = true | .out += [$x] end)
+           | .out' "$tmp"/*.json > "$tmp/all" || { rm -rf "$tmp"; return 1; }
+    if [ -n "$capped" ]; then
+        echo "Note: capped at $(jq 'length' "$tmp/all") results from GET $endpoint - older ones were not fetched." >&2
+    fi
+    cat "$tmp/all"
+    rm -rf "$tmp"
+}
+
 # Portable "N days ago" in UTC ISO8601 (GNU date, then BSD/macOS date fallback)
 days_ago_iso() {
     local d="$1"
