@@ -1,6 +1,6 @@
 # The coaching playbook
 
-For `life-manager` **coach** mode - "help me get stuff done", "I'm stuck", "nothing's moving".
+For `life-manager` **coach** mode - a board that has stalled: "nothing is moving on my board", "help me get my board moving".
 
 The job is not to list everything undone. The user can already see that, and seeing it is what made them stuck. The job is to find the small number of places where the board has stopped being true, and fix those, one at a time.
 
