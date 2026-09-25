@@ -40,18 +40,45 @@ trello_load_config() {
     TOKEN=$(jq -r '.token' "$TRELLO_CONFIG_FILE")
 }
 
+# A failed request inside a pipeline (`api_get ... | jq ...`) must fail the
+# pipeline, not hand jq an error message and carry on with whatever jq makes
+# of it.
+set -o pipefail
+
 # api <METHOD> <endpoint> [query] [extra curl args...]
 #
 # The one place a request is made. <query> is extra query-string parameters
 # without the leading "?". Pass any caller-supplied text (names, descriptions,
 # comments) as extra args with --data-urlencode, never -d: curl sends -d raw,
 # so an & truncates the value and a + arrives as a space.
+#
+# Prints the response body on a 2xx and returns 0. On anything else it prints
+# the status and Trello's message to stderr and returns 1. The status is the
+# only reliable signal: Trello sends its errors as text/plain ("invalid id",
+# "invalid token", "model not found"), not JSON, so a caller that looks for a
+# `.message` field reads an expired token as an empty list.
 api() {
     local method="$1" endpoint="$2" query="${3:-}"
     if [ $# -ge 3 ]; then shift 3; else shift $#; fi
     local url="$TRELLO_BASE_URL$endpoint?key=$API_KEY&token=$TOKEN"
     [ -n "$query" ] && url="$url&$query"
-    curl -s -X "$method" "$url" "$@"
+
+    local out status body
+    if ! out=$(curl -sS -X "$method" -w '\n%{http_code}' "$url" "$@"); then
+        echo "Error: could not reach Trello for $method $endpoint" >&2
+        return 1
+    fi
+    status="${out##*$'\n'}"
+    body="${out%$'\n'*}"
+    case "$status" in
+        2[0-9][0-9])
+            printf '%s\n' "$body"
+            ;;
+        *)
+            echo "Error: Trello answered HTTP $status to $method $endpoint: ${body:0:500}" >&2
+            return 1
+            ;;
+    esac
 }
 
 api_get()    { api GET "$1" "${2:-}"; }

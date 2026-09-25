@@ -51,10 +51,9 @@ case "$cmd" in
     all)
         DAYS="${2:-14}"
         BOARDS=$(api_get "/members/me/boards" "filter=open&fields=name,id")
-        if ! echo "$BOARDS" | jq -e '.[0].id' >/dev/null 2>&1; then
-            echo "Error fetching boards:" >&2
-            echo "$BOARDS" | jq -r '.message // .' >&2
-            exit 1
+        if [ "$(echo "$BOARDS" | jq 'length')" -eq 0 ]; then
+            echo "No open boards."
+            exit 0
         fi
 
         TMP=$(mktemp -d)

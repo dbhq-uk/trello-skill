@@ -181,9 +181,14 @@ JSON
     cat > "$SANDBOX/bin/curl" <<'SH'
 #!/bin/bash
 # Records every argument, one invocation per line, and answers with JSON shaped
-# enough for the callers' jq checks.
+# enough for the callers' jq checks. Like the real curl, it prints the status
+# after the body only when asked with -w, and exits 0 whatever the status.
+# FAKE_BODY and FAKE_STATUS override the answer.
 printf '%s\n' "$*" >> "$CURL_LOG"
-echo '[{"id":"CARD1","name":"a card","desc":"","pos":1,"labels":[],"due":null,"dueComplete":false,"url":"u","idList":"L1","idBoard":"B1","lists":[],"text":"c","date":"2026-06-01T00:00:00.000Z","memberCreator":{"fullName":"n"},"checkItems":[]}]'
+default='[{"id":"CARD1","name":"a card","desc":"","pos":1,"labels":[],"due":null,"dueComplete":false,"url":"u","idList":"L1","idBoard":"B1","lists":[],"text":"c","date":"2026-06-01T00:00:00.000Z","memberCreator":{"fullName":"n"},"checkItems":[]}]'
+printf '%s\n' "${FAKE_BODY-$default}"
+for a in "$@"; do [ "$a" = "-w" ] && printf '%s' "${FAKE_STATUS:-200}"; done
+exit 0
 SH
     chmod +x "$SANDBOX/bin/curl"
     export CURL_LOG="$SANDBOX/curl.log"
@@ -193,6 +198,15 @@ run_in_sandbox() {  # run_in_sandbox <script> [args...]
     local script="$1"; shift
     env HOME="$SANDBOX/home" CURL_LOG="$CURL_LOG" PATH="$SANDBOX/bin:$PATH" \
         bash "$script" "$@" 2>&1 || true
+}
+# Like run_in_sandbox, but keeps stdout, stderr and the exit code apart, so a
+# test can tell an error from a result. Sets OUT, ERR and RC.
+capture() {  # capture <script> [args...]
+    local script="$1"; shift
+    OUT=$(env HOME="$SANDBOX/home" CURL_LOG="$CURL_LOG" PATH="$SANDBOX/bin:$PATH" \
+        bash "$script" "$@" 2> "$SANDBOX/stderr" </dev/null)
+    RC=$?
+    ERR=$(cat "$SANDBOX/stderr")
 }
 
 # EVERY REQUEST GOES TO api.trello.com AND NOWHERE ELSE. This is the one
@@ -238,6 +252,50 @@ absent "create never puts caller text in the query string" "?key=TESTKEY&token=T
 : > "$CURL_LOG"
 run_in_sandbox "$CARDS" comment CARD1 'see & compare' >/dev/null
 contains "comment sends the text with --data-urlencode" "--data-urlencode text=see & compare" "$(cat "$CURL_LOG")"
+
+# AN ERROR IS AN ERROR, NOT AN EMPTY RESULT. Trello sends its errors as
+# text/plain - "invalid token", "invalid id", "model not found" - not JSON. The
+# scripts used to look for a JSON .message, find none, and fall through: an
+# expired token made a list look empty and exited 0, and label-remove printed
+# "Label removed." for a label that was never there. Now every script must
+# stop, exit non-zero and put Trello's own words on stderr.
+check_error() {  # check_error <name> <script> [args...]
+    local name="$1"; shift
+    capture "$@"
+    eq "$name on HTTP 401 exits non-zero" "nonzero" "$([ "$RC" -ne 0 ] && echo nonzero || echo "rc=$RC")"
+    contains "$name on HTTP 401 puts Trello's message on stderr" "invalid token" "$ERR"
+    contains "$name on HTTP 401 names the status" "401" "$ERR"
+    absent "$name on HTTP 401 does not claim an empty result" "No " "$OUT"
+    absent "$name on HTTP 401 does not claim success" "removed" "$OUT"
+}
+export FAKE_BODY='invalid token' FAKE_STATUS=401
+check_error "list"          "$CARDS" list L1
+check_error "comments"      "$CARDS" comments CARD1
+check_error "label-remove"  "$CARDS" label-remove CARD1 LABEL1
+check_error "lists"         "$BOARDS" lists B1
+check_error "digest"        "$DIGEST" digest B1 7
+check_error "due-radar all" "$DUE" all 14
+check_error "stale"         "$LIFE" stale L1 30
+check_error "read"          "$CARDS" read CARD1
+check_error "create"        "$CARDS" create L1 "a title"
+check_error "sort --apply"  "$LIFE" sort L1 "Now" --apply
+unset FAKE_BODY FAKE_STATUS
+
+# And a real empty answer is still reported as empty, and is not an error.
+export FAKE_BODY='[]'
+capture "$CARDS" list L1
+eq "list on a real empty array says so" "No cards found." "$OUT"
+eq "list on a real empty array exits 0" "0" "$RC"
+capture "$CARDS" comments CARD1
+eq "comments on a real empty array says so" "No comments found." "$OUT"
+unset FAKE_BODY
+
+# A 2xx with an empty body is success - Trello answers some deletes that way.
+export FAKE_BODY='' FAKE_STATUS=200
+capture "$CARDS" label-remove CARD1 LABEL1
+eq "label-remove on a 2xx says so" "Label removed." "$OUT"
+eq "label-remove on a 2xx exits 0" "0" "$RC"
+unset FAKE_BODY FAKE_STATUS
 
 # NO CONFIG MEANS NO REQUEST, AND A MESSAGE THAT NAMES THE FIX. All five
 # scripts, because the first one an agent reaches for is the one a new user

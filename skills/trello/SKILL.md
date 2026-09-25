@@ -162,7 +162,9 @@ Always confirm before creating:
 
 ## Error Handling
 
-- **Invalid credentials**: Re-run setup
+Every script exits non-zero and prints Trello's HTTP status and message on stderr when a request fails. Read that before telling the user anything: an error is never an empty result, and "No cards found." means Trello returned an empty list.
+
+- **Invalid credentials** (HTTP 401, `invalid key` or `invalid token`): Re-run setup
 - **Board/list not found**: Check ID or use find command
 - **Rate limited**: Wait a few seconds and retry (300 req/10s per key)
 

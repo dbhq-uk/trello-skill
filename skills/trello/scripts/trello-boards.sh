@@ -12,13 +12,8 @@ case "$1" in
         # List all boards
         RESPONSE=$(api_get "/members/me/boards" "fields=name,id,url,closed")
 
-        if echo "$RESPONSE" | jq -e '.[0].id' > /dev/null 2>&1; then
-            echo "$RESPONSE" | jq -r '.[] | select(.closed == false) | "[\(.id)] \(.name)"'
-        else
-            echo "Error fetching boards:"
-            echo "$RESPONSE" | jq -r '.message // .'
-            exit 1
-        fi
+        echo "$RESPONSE" | jq -r '[.[] | select(.closed == false)]
+            | if length == 0 then "No open boards." else .[] | "[\(.id)] \(.name)" end'
         ;;
 
     lists)
@@ -31,15 +26,8 @@ case "$1" in
         BOARD_ID="$2"
         RESPONSE=$(api_get "/boards/$BOARD_ID/lists" "fields=name,id,closed")
 
-        if echo "$RESPONSE" | jq -e '.[0].id' > /dev/null 2>&1; then
-            echo "$RESPONSE" | jq -r '.[] | select(.closed == false) | "[\(.id)] \(.name)"'
-        elif echo "$RESPONSE" | jq -e '.message' > /dev/null 2>&1; then
-            echo "Error:"
-            echo "$RESPONSE" | jq -r '.message'
-            exit 1
-        else
-            echo "No lists found or empty board."
-        fi
+        echo "$RESPONSE" | jq -r '[.[] | select(.closed == false)]
+            | if length == 0 then "No lists found or empty board." else .[] | "[\(.id)] \(.name)" end'
         ;;
 
     find)
@@ -52,19 +40,13 @@ case "$1" in
         SEARCH="$2"
         RESPONSE=$(api_get "/members/me/boards" "fields=name,id,url,closed")
 
-        if echo "$RESPONSE" | jq -e '.[0].id' > /dev/null 2>&1; then
-            MATCHES=$(echo "$RESPONSE" | jq -r --arg search "$SEARCH" \
-                '.[] | select(.closed == false) | select(.name | ascii_downcase | contains($search | ascii_downcase)) | "[\(.id)] \(.name)"')
+        MATCHES=$(echo "$RESPONSE" | jq -r --arg search "$SEARCH" \
+            '.[] | select(.closed == false) | select(.name | ascii_downcase | contains($search | ascii_downcase)) | "[\(.id)] \(.name)"')
 
-            if [ -n "$MATCHES" ]; then
-                echo "$MATCHES"
-            else
-                echo "No boards found matching: $SEARCH"
-            fi
+        if [ -n "$MATCHES" ]; then
+            echo "$MATCHES"
         else
-            echo "Error fetching boards:"
-            echo "$RESPONSE" | jq -r '.message // .'
-            exit 1
+            echo "No boards found matching: $SEARCH"
         fi
         ;;
 
@@ -78,13 +60,7 @@ case "$1" in
         BOARD_ID="$2"
         RESPONSE=$(api_get "/boards/$BOARD_ID" "fields=name,id,url,desc,closed")
 
-        if echo "$RESPONSE" | jq -e '.id' > /dev/null 2>&1; then
-            echo "$RESPONSE" | jq -r '"Board: \(.name)\nID: \(.id)\nURL: \(.url)\nDescription: \(.desc // "None")"'
-        else
-            echo "Error:"
-            echo "$RESPONSE" | jq -r '.message // .'
-            exit 1
-        fi
+        echo "$RESPONSE" | jq -r '"Board: \(.name)\nID: \(.id)\nURL: \(.url)\nDescription: \(.desc // "None")"'
         ;;
 
     list)
@@ -97,13 +73,7 @@ case "$1" in
         LIST_ID="$2"
         RESPONSE=$(api_get "/lists/$LIST_ID" "fields=name,id,idBoard,closed")
 
-        if echo "$RESPONSE" | jq -e '.id' > /dev/null 2>&1; then
-            echo "$RESPONSE" | jq -r '"List: \(.name)\nID: \(.id)\nBoard ID: \(.idBoard)"'
-        else
-            echo "Error:"
-            echo "$RESPONSE" | jq -r '.message // .'
-            exit 1
-        fi
+        echo "$RESPONSE" | jq -r '"List: \(.name)\nID: \(.id)\nBoard ID: \(.idBoard)"'
         ;;
 
     *)

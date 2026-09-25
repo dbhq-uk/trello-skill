@@ -28,11 +28,6 @@ case "$cmd" in
         fi
 
         BOARD=$(api_get "/boards/$BOARD_ID" "fields=name,url")
-        if ! echo "$BOARD" | jq -e '.id? // .name?' >/dev/null 2>&1; then
-            echo "Error:" >&2
-            echo "$BOARD" | jq -r '.message // .' >&2
-            exit 1
-        fi
         NAME=$(echo "$BOARD" | jq -r '.name // "Unknown board"')
 
         LISTS=$(api_get "/boards/$BOARD_ID/lists" "fields=name,id&cards=none")
