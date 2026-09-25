@@ -27,9 +27,15 @@ ${CLAUDE_SKILL_DIR}/scripts/board-digest.sh digest <board-id>
 
 # Widen the activity window to, say, 14 days
 ${CLAUDE_SKILL_DIR}/scripts/board-digest.sh digest <board-id> 14
+
+# Activity window 7 days, call a card idle after 30 days, show up to 25 cards per list
+${CLAUDE_SKILL_DIR}/scripts/board-digest.sh digest <board-id> 7 30 25
 ```
 
-The script prints four parts: a header with the open-card count, a per-list breakdown, a due-and-overdue section, and recent activity (created, moved, commented).
+The script prints five parts: a header with the open-card count, a per-list breakdown, a due-and-overdue section, the cards that have not moved, and recent activity (created, moved, commented).
+
+- **Each list shows its first 10 cards** in board order, then a line such as `+ 8 more (trello-cards.sh list <list-id> 18 shows them all)`. The count in the list's heading is always the full count. Pass a larger `limit` (the fourth number) to see more, or run the `trello-cards.sh list` call the line gives.
+- **"Not moved in 14 days or more"** lists the cards with no activity for that long, oldest first, with how many days and the list each is on, up to the same limit. Change the 14 with the third number. Cards in a done list are left out, because they are finished.
 
 ## Turning the snapshot into a digest
 
@@ -37,13 +43,13 @@ The script gives you the raw structure. Add value on top:
 
 1. **Lead with the headline** - overdue items and anything due in the next three days come first. If something is overdue, say so plainly.
 2. **Summarise, don't just list** - "Backlog is growing (18 cards), three items moved to Done this week, two cards are overdue."
-3. **Flag blockers** - cards that have not moved in a long time, or lists that are piling up.
+3. **Flag blockers** - the cards in "Not moved", and lists that are piling up. Name the oldest few rather than all of them.
 4. **Keep it scannable** - short lines, grouped by list or by theme, no filler.
 
 ## Workflow: standup or weekly review
 
 1. Resolve the board id (`trello-boards.sh find`)
-2. Run `board-digest.sh digest <board-id> [days]`
+2. Run `board-digest.sh digest <board-id> [days] [idle-days] [limit]`
 3. Write a short digest: headline (due/overdue), what moved, where the pressure is, and one or two suggested next actions
 4. Offer to act on any of it (create, move, or comment on cards via the `trello` skill) - but only after the user confirms
 
@@ -53,3 +59,4 @@ The script gives you the raw structure. Add value on top:
 - Due-date detection ignores cards already marked complete, and highlights anything due within three days as "due soon". Each row names the card's list in brackets.
 - A card in a done list (Done, Complete, Completed or Finished, or a name in `TRELLO_DONE_LISTS`) whose due date was never ticked is shown as "in Done, due not ticked", not OVERDUE. It is finished work: do not report it as overdue.
 - Every time is shown in the user's local time zone, which the header names.
+- "Not moved" uses Trello's last-activity date for each card. Any change to a card counts, so a card that was only renamed or re-sorted counts as moved. On a life-manager board, `life-board.sh stale` ignores those changes.
