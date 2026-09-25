@@ -23,7 +23,7 @@ usage() {
     echo
     echo "Creating & Updating:"
     echo "  create <list-id> <title> [desc]   Create a new card"
-    echo "  update <card-id> <field> <value>  Update card (name, desc, due)"
+    echo "  update <card-id> <field> <value>  Update card (name, desc, due, dueComplete, closed)"
     echo "  move <card-id> <list-id>          Move card to another list"
     echo
     echo "Labels & Checklists:"
@@ -47,12 +47,10 @@ usage() {
     echo "Archive & Delete:"
     echo "  archive <card-id>           Archive a card"
     echo "  unarchive <card-id>         Restore archived card"
-    echo "  delete <card-id>            Delete card permanently"
+    echo "  delete <card-id>            Delete card permanently (cannot be undone)"
     echo
     echo "Details:"
-    echo "  labels <card-id>            Show labels on card"
     echo "  members <card-id>           Show assigned members"
-    echo "  checklist <card-id>         Show checklists on card"
 }
 
 case "$1" in

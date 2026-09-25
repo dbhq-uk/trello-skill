@@ -978,6 +978,36 @@ contains "trello/SKILL.md documents checkitem-done" "trello-cards.sh checkitem-d
 contains "life-manager uses checkitem-done" "trello-cards.sh checkitem-done " "$LIFE_DOCS"
 eq "life-manager's docs make no request of their own" "" \
    "$(printf '%s\n' "$LIFE_DOCS" | grep -nE 'curl +-|api\.trello\.com' || true)"
+
+# EVERY VERB, NOT ONLY THE NEW ONES. The command list in trello/SKILL.md left
+# out label-add, label-remove, checklist-add and checkitem-add, so an agent
+# reading it did not know they existed. The verbs are read from each script's
+# own case statement, so a verb added later has to be documented too.
+verbs_of() {  # the verbs in a script's case statement, help excluded
+    grep -oE '^    [a-z][a-z-]*\)' "$1" | tr -d ' )'
+}
+for s in "$CARDS" "$BOARDS"; do
+    n=$(basename "$s")
+    capture "$s" help
+    [ -n "$(verbs_of "$s")" ] || { FAIL=$((FAIL+1)); printf 'FAIL - no verbs read from %s\n' "$n"; }
+    for v in $(verbs_of "$s"); do
+        contains "$n help lists $v" "  $v " "$OUT"
+        eq "trello/SKILL.md shows how to run $n $v" "yes" \
+           "$(grep -qE "\\\$\\{CLAUDE_SKILL_DIR\\}/scripts/$n $v( |\$)" "$REPO_ROOT/skills/trello/SKILL.md" && echo yes || echo no)"
+    done
+done
+unset -f verbs_of
+
+# update takes any card field, so the docs name the ones worth knowing, and
+# dueComplete - ticking a due date - is one of them.
+contains "trello-cards.sh help names dueComplete as an update field" "dueComplete" "$(grep '  update ' <<< "$CARDS_HELP")"
+contains "trello/SKILL.md names dueComplete as an update field" "dueComplete" "$(grep -i 'update card field' <<< "$TRELLO_MD")"
+
+# delete cannot be undone. trello/SKILL.md offered it with no rule, beside a
+# confirm rule for creating a card.
+contains "trello/SKILL.md never deletes a card the user did not name" \
+   "Never delete a card unless the user names that card and asks for it to be deleted." "$TRELLO_MD"
+contains "trello/SKILL.md prefers archive to delete" "Prefer \`archive\`" "$TRELLO_MD"
 unset BOARDS_HELP CARDS_HELP TRELLO_MD LIFE_DOCS
 
 : > "$CURL_LOG"
