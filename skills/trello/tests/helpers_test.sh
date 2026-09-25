@@ -1190,6 +1190,73 @@ capture "$DUE" board B1 14
 eq "a board with nothing due costs no lists request" "0" "$(grep -c '/lists' "$CURL_LOG")"
 unset FAKE_DIR
 
+# board-digest CAPS EACH LIST AND SAYS WHAT HAS NOT MOVED. SKILL.md told the
+# agent to flag cards that had not moved, but the script fetched
+# dateLastActivity and never printed it - and it printed every card on every
+# list, which floods the reader on a big board. Now each list shows its first
+# <limit> cards in board order and counts the rest, and a section lists the
+# cards with no activity for <idle-days>, oldest first, leaving out done lists.
+export FAKE_DIR="$SANDBOX/digest-big"; mkdir -p "$FAKE_DIR"
+now_s=$(command date -u +%s)
+ago() { jq -rn --argjson t "$((now_s - $1 * 86400))" '$t | todate'; }
+echo '{"name":"Big board","url":"u"}' > "$FAKE_DIR/boards_B1.json"
+echo '[{"id":"L1","name":"Backlog"},{"id":"L2","name":"Done"}]' > "$FAKE_DIR/boards_B1_lists.json"
+# Thirteen Backlog cards, served in reverse board order so the sort is tested.
+# Card 03 and card 05 are long idle, card 07 idle for 5 days, the rest fresh;
+# the Done card is the oldest of all and must never be called idle.
+jq -n --arg fresh "$(ago 1)" --arg five "$(ago 5)" '
+    [range(13; 0; -1) | {id: "K\(.)", name: ("card " + (if . < 10 then "0" else "" end) + tostring),
+        idList: "L1", pos: (. * 100), due: null, dueComplete: false, labels: [],
+        dateLastActivity: (if . == 3 then "2020-01-01T12:00:00.000Z"
+                           elif . == 5 then "2021-06-01T12:00:00.000Z"
+                           elif . == 7 then $five else $fresh end)}]
+    + [{id: "KD", name: "finished long ago", idList: "L2", pos: 1, due: null, dueComplete: false,
+        labels: [], dateLastActivity: "2019-01-01T12:00:00.000Z"}]' > "$FAKE_DIR/boards_B1_cards.json"
+echo '[]' > "$FAKE_DIR/boards_B1_actions.json"
+section() {  # section <heading start> - the lines of one ## section of $OUT
+    printf '%s\n' "$OUT" | awk -v h="## $1" 'index($0, h) == 1 {f=1; next} /^## /{f=0} f && NF'
+}
+: > "$CURL_LOG"
+capture "$DIGEST" digest B1
+eq "digest on a big board exits 0" "0" "$RC"
+contains "digest asks for each card's position" "pos" "$(grep '/boards/B1/cards' "$CURL_LOG")"
+LISTS_OUT=$(section "Lists")
+contains "a list still says how many cards it has" "### Backlog (13)" "$LISTS_OUT"
+eq "a list shows 10 cards by default" "10" "$(grep -c '^  - card' <<< "$LISTS_OUT")"
+eq "in board order, not the order Trello sent" "  - card 01" "$(grep -m1 '^  - card' <<< "$LISTS_OUT")"
+absent "the cards past the cap are not listed" "card 11" "$LISTS_OUT"
+contains "the rest are counted, with the call that shows them" \
+   "  + 3 more (trello-cards.sh list L1 13 shows them all)" "$LISTS_OUT"
+contains "a short list is shown whole" "  - finished long ago" "$LISTS_OUT"
+IDLE_OUT=$(section "Not moved")
+contains "digest has a not-moved section, 14 days by default" "## Not moved in 14 days or more" "$OUT"
+eq "it lists the idle cards, oldest first, with their age and list" \
+   "  - $(( (now_s - $(jq -rn '"2020-01-01T12:00:00Z" | fromdateiso8601')) / 86400 )) days, since 2020-01-01: card 03 [Backlog]
+  - $(( (now_s - $(jq -rn '"2021-06-01T12:00:00Z" | fromdateiso8601')) / 86400 )) days, since 2021-06-01: card 05 [Backlog]" \
+   "$IDLE_OUT"
+absent "a card in a done list is never called idle" "finished long ago" "$IDLE_OUT"
+capture "$DIGEST" digest B1 7 3
+contains "idle-days lowers the bar" "5 days, since" "$(section "Not moved")"
+contains "and the heading names it" "## Not moved in 3 days or more" "$OUT"
+capture "$DIGEST" digest B1 7 14 1
+eq "limit caps the not-moved section too" "  - card 03 [Backlog]|  + 1 more, not shown (pass a larger limit to see them)" \
+   "$(section "Not moved" | sed 's/^  - [0-9]* days, since [0-9-]*: /  - /' | paste -sd '|' -)"
+eq "and each list" "1" "$(grep -c '^  - card' <<< "$(section "Lists")")"
+capture "$DIGEST" digest B1 7 14 20
+absent "a limit above the list size shows the list whole" "more (trello-cards.sh" "$OUT"
+echo '[{"id":"KD","name":"fresh","idList":"L1","pos":1,"dateLastActivity":"'"$(ago 1)"'"}]' > "$FAKE_DIR/boards_B1_cards.json"
+capture "$DIGEST" digest B1
+contains "a board where everything moved says so" "(none - every open card has had activity in the last 14 days)" "$OUT"
+for bad in "7 soon" "7 14 0" "x"; do
+    : > "$CURL_LOG"
+    # shellcheck disable=SC2086  # the words are the arguments
+    capture "$DIGEST" digest B1 $bad
+    eq "digest refuses \"$bad\"" "1" "$RC"
+    eq "digest with \"$bad\" makes no request" "0" "$(wc -l < "$CURL_LOG" | tr -d ' ')"
+done
+unset FAKE_DIR now_s LISTS_OUT IDLE_OUT
+unset -f ago section
+
 # HOW TO WRITE ONE. Nothing told the agent, so the zone on a new due date was a
 # guess. trello/SKILL.md now states the rule.
 contains "trello/SKILL.md says to write a due date with an offset" "full ISO 8601 time with an offset" \
