@@ -10,14 +10,14 @@ Set the pack up from source with a **live symlink install**, so your edits are a
 ## 1. Clone
 
 ```bash
-git clone https://github.com/dbhq-uk/trello-skill.git ~/dbhq-trello
-cd ~/dbhq-trello
+git clone https://github.com/dbhq-uk/trello-skill.git
+cd trello-skill
 ```
 
 ## 2. Install (symlink)
 
 ```bash
-./install.sh          # Claude Code: symlinks all four skills into ~/.claude/skills (edits are live)
+./install.sh          # Claude Code: symlinks all five skills into ~/.claude/skills (edits are live)
 ./install-codex.sh    # Codex: installs into ~/.codex/skills
 ```
 
@@ -48,4 +48,4 @@ Then, in Claude Code, try *"show my Trello boards"* or *"what's due on Trello th
 
 ## Working across machines
 
-Editing **anything** under `~/dbhq-trello` (scripts or `SKILL.md`) is live immediately in Claude Code - each skill directory is symlinked whole. For Codex, re-run `./install-codex.sh` after a `SKILL.md` edit. If you develop on more than one machine, `git pull` before you start and `git push` when done to keep them in sync.
+Editing **anything** in your clone (scripts or `SKILL.md`) is live immediately in Claude Code - each skill directory is symlinked whole. For Codex, re-run `./install-codex.sh` after a `SKILL.md` edit. If you develop on more than one machine, `git pull` before you start and `git push` when done to keep them in sync.

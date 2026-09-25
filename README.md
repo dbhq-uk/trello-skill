@@ -4,7 +4,7 @@
 
 # trello
 
-**A pack of Trello skills for Claude Code and Codex - manage boards, sort your shopping, and stay on top of what's due, in plain language**
+**Five Trello skills for Claude Code and Codex: trello manages boards, lists and cards, store-sort puts a shopping list in aisle order, board-digest summarises a board, due-radar shows what is due across boards, and life-manager runs a personal board that gets things done.**
 
 [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
 [![Claude Code](https://img.shields.io/badge/Claude_Code-Plugin-blueviolet)](https://code.claude.com/docs/en/plugins)
@@ -16,13 +16,13 @@ A free, open-source tool by [DBHQ](https://dbhq.uk) - documented at [skills.dbhq
 
 ---
 
-Five Trello skills that work together, all driven in plain language and powered by the Trello REST API.
+All five are driven in plain language, over the Trello REST API with your own key.
 
 ## The pack
 
 | Skill | What it does |
 |-------|--------------|
-| 📋 **trello** | Core board, list, and card management - create, move, position, label, comment, archive. Every card gets categorised. |
+| 📋 **trello** | Core board, list and card management - create, move, position, label, comment, archive - and the setup the other four use. |
 | 🛒 **store-sort** | Reorders a shopping list into a supermarket's aisle flow with a food-type emoji on every card. Any store via presets; ships a Tesco (UK) preset. |
 | 📰 **board-digest** | A plain-English status snapshot of a board - lists and cards, what's due or overdue, and what moved recently. Great for a standup or weekly review. |
 | ⏰ **due-radar** | What's due, overdue, or coming up across all your boards, sorted by date, overdue first. |
@@ -96,7 +96,7 @@ Want to hack on the pack, add a skill, or run it from source with live edits? Se
 
 ## Extending the pack
 
-`store-sort` reads its aisle order from a **preset**, a JSON file in `skills/store-sort/references/stores/`. To add your own store, copy `tesco.json` to `~/.dbhq/trello/stores/<store>.json` and change it. The pack is designed to grow - a board templater, quick-capture, and sprint reports are on the roadmap.
+`store-sort` reads its aisle order from a **preset**, a JSON file in `skills/store-sort/references/stores/`. To add your own store, copy `tesco.json` to `~/.dbhq/trello/stores/<store>.json` and change it.
 
 ## Credentials and privacy
 
