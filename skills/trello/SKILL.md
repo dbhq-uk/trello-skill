@@ -1,6 +1,6 @@
 ---
 name: trello
-description: Manage Trello boards, lists, and cards. Trigger on phrases like "trello", "my boards", "shopping list", "create card", "move card", "sort cards".
+description: Manage Trello boards, lists, and cards - find a board, read, create, move, label, comment on and archive cards. Trigger on phrases like "trello", "my boards", "my trello board", "create card", "move card", "add a card to trello". Not for sorting a shopping list into aisle order - that is store-sort.
 ---
 
 # Trello Board Management
@@ -149,29 +149,9 @@ ${CLAUDE_SKILL_DIR}/scripts/trello-cards.sh members <card-id>
 ${CLAUDE_SKILL_DIR}/scripts/trello-cards.sh checklist <card-id>
 ```
 
-## Workflow: Smart Sorting (e.g., Shopping List by Category)
+## Sorting a whole list
 
-When user wants to sort cards by category (like food items by store section):
-
-1. Get all cards in the list as JSON:
-   ```bash
-   ${CLAUDE_SKILL_DIR}/scripts/trello-cards.sh list-json <list-id>
-   ```
-
-2. Analyze the card names and categorize them (e.g., Produce, Dairy, Meat, Bakery, Frozen, etc.)
-
-3. Propose the new order to the user, grouped by category
-
-4. After approval, update positions for each card:
-   ```bash
-   # First card gets position 1000
-   ${CLAUDE_SKILL_DIR}/scripts/trello-cards.sh position <card-id-1> 1000
-   # Second card gets position 2000
-   ${CLAUDE_SKILL_DIR}/scripts/trello-cards.sh position <card-id-2> 2000
-   # And so on...
-   ```
-
-This keeps the original list but reorders cards so same-category items are grouped together.
+This skill has no sorting workflow of its own. To put a shopping list into a supermarket's aisle order, use the **store-sort** skill, which carries the store preset. To order a life-manager board by category, use **life-manager**'s `sort`. To move one card, use `top`, `bottom` or `position` above.
 
 ## Workflow: Adding Items
 

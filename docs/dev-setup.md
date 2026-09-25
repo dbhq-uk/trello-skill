@@ -39,7 +39,7 @@ Create a free Trello Power-Up at https://trello.com/power-ups/admin to generate 
 ~/.claude/skills/trello/scripts/trello-boards.sh boards
 ```
 
-Then, in Claude Code, try *"show my Trello boards"* or *"what's due this week?"*.
+Then, in Claude Code, try *"show my Trello boards"* or *"what's due on Trello this week?"*.
 
 ## Adding to the pack
 

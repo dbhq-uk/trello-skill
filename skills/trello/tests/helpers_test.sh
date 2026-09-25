@@ -903,6 +903,42 @@ else
     printf 'skip - setup at a terminal: python3 not found\n'
 fi
 
+# TRIGGER PHRASES ARE SCOPED TO TRELLO. An agent picks a skill by the phrases
+# in its description, so a bare phrase another skill also claims can load the
+# wrong one: `trello` claimed "shopping list" and "sort cards", which are
+# store-sort's job, life-manager claimed "I'm stuck" and "what should I do
+# next", which decision skills claim, and due-radar claimed a bare "what's
+# due", which a calendar claims. Checked on the quoted phrases in each
+# description, case-insensitively, with a curly apostrophe read as straight.
+phrases_of() {  # the quoted phrases in a SKILL.md description, one per line
+    awk '/^---$/{n++; next} n==1 && /^description:/' "$REPO_ROOT/skills/$1/SKILL.md" \
+        | grep -oE '"[^"]+"' | tr -d '"' | sed "s/’/'/g" | tr '[:upper:]' '[:lower:]'
+}
+for skill in trello store-sort board-digest due-radar life-manager; do
+    [ -n "$(phrases_of "$skill")" ] || { FAIL=$((FAIL+1)); printf 'FAIL - %s has no quoted trigger phrases to check\n' "$skill"; }
+    for bare in "shopping list" "sort cards" "i'm stuck" "what's due" "what's overdue" \
+                "what should i do next" "sort my inbox" "help me get stuff done"; do
+        eq "$skill does not claim the bare phrase \"$bare\"" "" \
+           "$(phrases_of "$skill" | grep -Fx -- "$bare" || true)"
+    done
+done
+eq "every due-radar phrase names trello or the radar" "" \
+   "$(phrases_of due-radar | grep -v -e trello -e 'due radar' || true)"
+eq "every life-manager phrase names a board, trello or the skill" "" \
+   "$(phrases_of life-manager | grep -v -e board -e trello -e 'life manager' || true)"
+contains "life-manager says it is not for general decisions" "Not for general decisions" \
+   "$(cat "$REPO_ROOT/skills/life-manager/SKILL.md")"
+contains "trello hands shopping-list sorting to store-sort" "that is store-sort" \
+   "$(awk '/^---$/{n++; next} n==1' "$REPO_ROOT/skills/trello/SKILL.md")"
+# trello/SKILL.md had its own shopping-sort workflow - list-json, categorise,
+# then one position call per card - which bypassed store-sort's preset.
+absent "trello/SKILL.md has no Smart Sorting workflow" "Smart Sorting" "$(cat "$REPO_ROOT/skills/trello/SKILL.md")"
+eq "trello/SKILL.md positions no run of cards itself" "" \
+   "$(grep -n 'position <card-id-[0-9]' "$REPO_ROOT/skills/trello/SKILL.md" || true)"
+eq "no SKILL.md or reference offers \"I'm stuck\" as a trigger" "" \
+   "$(grep -rn -i "\"I'm stuck\"" "$REPO_ROOT/skills" --include='*.md' || true)"
+unset -f phrases_of
+
 rm -rf "$SANDBOX"
 
 ########################################

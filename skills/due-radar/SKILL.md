@@ -1,6 +1,6 @@
 ---
 name: due-radar
-description: Show what is due, overdue, or coming up across your Trello boards, sorted by date. Trigger on phrases like "what's due", "what's overdue", "trello deadlines", "due radar", "what's coming up on trello".
+description: Show what is due, overdue, or coming up across your Trello boards, sorted by date. Trigger on phrases like "what's due on trello", "overdue trello cards", "trello deadlines", "due radar", "what's coming up on trello". Not for calendar events or deadlines kept anywhere but Trello.
 ---
 
 # Due Radar - deadlines across your Trello boards

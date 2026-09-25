@@ -1,6 +1,6 @@
 ---
 name: life-manager
-description: Set up and run a Trello board that actually gets things done - capture ideas, triage them into a working queue, and coach the user through what has stalled. Three modes - setup, triage, coach. Trigger on phrases like "set up my life board", "help me get stuff done", "sort my inbox", "what should I do next", "I'm stuck", "nothing is moving", "life manager", "manage my todo board".
+description: Set up and run a Trello board that actually gets things done - capture ideas, triage them into a working queue, and coach the user through what has stalled on it. Three modes - setup, triage, coach. Trigger on phrases like "set up my life board", "triage my trello inbox", "what should I do next on my board", "nothing is moving on my board", "help me get my board moving", "life manager", "manage my todo board". Not for general decisions or planning that does not involve a Trello board.
 ---
 
 # Life-Manager - a Trello board that gets things done
@@ -12,8 +12,8 @@ Three modes, chosen by what the user asks for:
 | Mode | They say | You do |
 |------|----------|--------|
 | **setup** | "set up my life board" | Build the lists, agree their labels, write their config |
-| **triage** | "sort my inbox", or they dump a pile of thoughts | Classify, label, break down, place - on approval |
-| **coach** | "help me get stuff done", "I'm stuck" | Find the friction, work it one thing at a time |
+| **triage** | "triage my Trello inbox", or they dump a pile of thoughts | Classify, label, break down, place - on approval |
+| **coach** | "nothing is moving on my board", "what should I do next on my board" | Find the friction, work it one thing at a time |
 
 Built on the `trello` skill in this pack.
 
@@ -105,7 +105,7 @@ For a raw dump, an Inbox with cards in it, or "sort this out for me".
 
 ## Mode 3 - coach
 
-For "help me get stuff done", "I'm stuck", "nothing's moving". Read `references/coaching.md` for the full playbook.
+For a board that has stalled: "nothing is moving on my board", "help me get my board moving". Read `references/coaching.md` for the full playbook.
 
 The short version:
 
