@@ -33,6 +33,7 @@ usage() {
     echo "  checklist <card-id>                 Show checklists"
     echo "  checklist-add <card-id> <name>      Create a checklist, prints its id"
     echo "  checkitem-add <checklist-id> <name> Add an item to a checklist"
+    echo "  checkitem-done <card-id> <item-id>  Tick an item (ids from checklist)"
     echo
     echo "Positioning:"
     echo "  top <card-id>               Move card to top of list"
@@ -331,6 +332,19 @@ case "$1" in
         echo "Added: $3"
         ;;
 
+    checkitem-done)
+        # Tick a checklist item. Trello sets an item's state through the card
+        # it is on, so this takes the card id and the item id, both shown by
+        # `checklist <card-id>`.
+        if [ -z "${2:-}" ] || [ -z "${3:-}" ]; then
+            echo "Usage: trello-cards.sh checkitem-done <card-id> <item-id>"
+            exit 1
+        fi
+
+        RESPONSE=$(api_put "/cards/$2/checkItem/$3" --data-urlencode "state=complete")
+        echo "$RESPONSE" | jq -r '"Ticked: \(.name)"'
+        ;;
+
     members)
         # Show members assigned to a card
         if [ -z "$2" ]; then
@@ -356,7 +370,7 @@ case "$1" in
         RESPONSE=$(api_get "/cards/$CARD_ID/checklists")
 
         echo "$RESPONSE" | jq -r 'if length == 0 then "No checklists on this card."
-            else .[] | "=== \(.name) ===\n" + ([.checkItems[] | "  [\(if .state == "complete" then "x" else " " end)] \(.name)"] | join("\n")) + "\n" end'
+            else .[] | "=== \(.name) [\(.id)] ===\n" + ([.checkItems | sort_by(.pos)[] | "  [\(if .state == "complete" then "x" else " " end)] \(.name)  (item \(.id))"] | join("\n")) + "\n" end'
         ;;
 
     help|-h|--help)

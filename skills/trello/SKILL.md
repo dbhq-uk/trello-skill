@@ -55,6 +55,25 @@ ${CLAUDE_SKILL_DIR}/scripts/trello-boards.sh list <list-id>
 ${CLAUDE_SKILL_DIR}/scripts/trello-boards.sh labels <board-id>
 ```
 
+### Creating boards, lists and labels
+
+Each of these changes the user's Trello, so confirm the name first. Every one prints the new or changed item as `[id] name`.
+
+```bash
+# Create a board (Trello adds its own starter lists and six unnamed colour labels)
+${CLAUDE_SKILL_DIR}/scripts/trello-boards.sh board-create "Life" "Optional description"
+
+# Add a list to a board, at the bottom unless you say top
+${CLAUDE_SKILL_DIR}/scripts/trello-boards.sh list-create <board-id> "Inbox" top
+
+# Rename a list - prefer this to adding a list when one is already there
+${CLAUDE_SKILL_DIR}/scripts/trello-boards.sh list-rename <list-id> "Today"
+
+# Add a label to a board, with a colour or none (green, yellow, orange, red,
+# purple, blue, sky, lime, pink, black)
+${CLAUDE_SKILL_DIR}/scripts/trello-boards.sh label-create <board-id> "Health" green
+```
+
 ## Card Operations
 
 ### Listing Cards
@@ -146,8 +165,15 @@ ${CLAUDE_SKILL_DIR}/scripts/trello-cards.sh labels <card-id>
 # Show assigned members
 ${CLAUDE_SKILL_DIR}/scripts/trello-cards.sh members <card-id>
 
-# Show checklists
+# Show checklists, with each checklist's id and each item's id
 ${CLAUDE_SKILL_DIR}/scripts/trello-cards.sh checklist <card-id>
+
+# Add a checklist (prints its id), then an item to it
+${CLAUDE_SKILL_DIR}/scripts/trello-cards.sh checklist-add <card-id> "Steps"
+${CLAUDE_SKILL_DIR}/scripts/trello-cards.sh checkitem-add <checklist-id> "First step"
+
+# Tick an item - the item id comes from `checklist`
+${CLAUDE_SKILL_DIR}/scripts/trello-cards.sh checkitem-done <card-id> <item-id>
 ```
 
 ## Sorting a whole list
