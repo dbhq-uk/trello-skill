@@ -29,7 +29,12 @@ BOARDS="$REPO_ROOT/skills/trello/scripts/trello-boards.sh"
 DUE="$REPO_ROOT/skills/due-radar/scripts/due-radar.sh"
 DIGEST="$REPO_ROOT/skills/board-digest/scripts/board-digest.sh"
 LIFE="$REPO_ROOT/skills/life-manager/scripts/life-board.sh"
+SETUP="$REPO_ROOT/skills/trello/scripts/trello-setup.sh"
+LIB="$REPO_ROOT/skills/trello/scripts/lib.sh"
 ALL_SCRIPTS=("$CARDS" "$BOARDS" "$DUE" "$DIGEST" "$LIFE")
+# Every script a user or an agent can run. Setup is one of them, and it is the
+# one a new user meets first, so the migration test covers it too.
+ENTRY_SCRIPTS=("${ALL_SCRIPTS[@]}" "$SETUP")
 
 PASS=0; FAIL=0
 eq() { if [ "$2" = "$3" ]; then PASS=$((PASS+1)); printf 'ok   - %s\n' "$1";
@@ -109,10 +114,10 @@ eq "render says so when there is nothing" "  (nothing overdue or due in the next
 
 unset -f date render
 
-# days_ago_iso() exists twice, in board-digest and life-board, and both carry
-# the GNU/BSD date fallback. Test the real one - a broken fallback is silent on
-# the machine the author used and total on the other.
-eval "$(extract_fn "$DIGEST" days_ago_iso)"
+# days_ago_iso() lives once, in lib.sh, and carries the GNU/BSD date fallback.
+# Test the real one - a broken fallback is silent on the machine the author
+# used and total on the other.
+eval "$(extract_fn "$LIB" days_ago_iso)"
 got=$(days_ago_iso 7)
 case "$got" in
   [0-9][0-9][0-9][0-9]-[0-9][0-9]-[0-9][0-9]T[0-9][0-9]:[0-9][0-9]:[0-9][0-9]Z)
@@ -247,14 +252,16 @@ for s in "${ALL_SCRIPTS[@]}"; do
     rm -rf "$empty"
 done
 
-# THE ~/.trello MIGRATION, WHICH EVERY SCRIPT CARRIES. Whichever script an
+# THE ~/.trello MIGRATION, WHICH EVERY ENTRY SCRIPT RUNS. Whichever script an
 # agent reaches for first has to be the one that migrates - the same rule that
 # was broken in three of outlook's four entry scripts on 17 Sep 2026, where the
-# token script migrated and the others renamed a path that never existed.
-for s in "${ALL_SCRIPTS[@]}"; do
+# token script migrated and the others renamed a path that never existed. The
+# migration lives once, in lib.sh, and runs when lib.sh is sourced - so this
+# runs every entry script, not lib.sh, to prove each one still sources it.
+for s in "${ENTRY_SCRIPTS[@]}"; do
     h=$(mktemp -d); mkdir -p "$h/.trello" "$h/bin"; cp "$SANDBOX/bin/curl" "$h/bin/curl"
     echo '{"api_key":"MIGRATED","token":"MIGRATEDTOKEN"}' > "$h/.trello/config.json"
-    env HOME="$h" CURL_LOG="$h/curl.log" PATH="$h/bin:$PATH" bash "$s" >/dev/null 2>&1 || true
+    env HOME="$h" CURL_LOG="$h/curl.log" PATH="$h/bin:$PATH" bash "$s" </dev/null >/dev/null 2>&1 || true
     eq "$(basename "$s") migrates ~/.trello to ~/.dbhq/trello" "MIGRATED" \
        "$(jq -r '.api_key' "$h/.dbhq/trello/config.json" 2>/dev/null || echo MISSING)"
     eq "$(basename "$s") leaves nothing behind at ~/.trello" "gone" \
@@ -265,8 +272,8 @@ for s in "${ALL_SCRIPTS[@]}"; do
 done
 
 # AND IT IS GUARDED. A second run must not move a live directory on top of an
-# existing one - the migration is `[ ! -e "$CONFIG_DIR" ]` and that guard is
-# what makes it safe to put in all six scripts.
+# existing one - the migration is `[ ! -e "$TRELLO_CONFIG_DIR" ]` and that
+# guard is what makes it safe to run from every entry script.
 h=$(mktemp -d); mkdir -p "$h/.trello" "$h/.dbhq/trello" "$h/bin"; cp "$SANDBOX/bin/curl" "$h/bin/curl"
 echo '{"api_key":"OLD","token":"OLD"}' > "$h/.trello/config.json"
 echo '{"api_key":"CURRENT","token":"CURRENT"}' > "$h/.dbhq/trello/config.json"
@@ -276,6 +283,40 @@ eq "an existing ~/.dbhq/trello is never overwritten by the migration" "CURRENT" 
 eq "and the stale ~/.trello is left alone rather than deleted" "OLD" \
    "$(jq -r '.api_key' "$h/.trello/config.json")"
 rm -rf "$h"
+
+# ONE COPY OF THE PLUMBING. Config loading, the migration and the request
+# itself live in lib.sh and nowhere else. Six copies of them is how one
+# error-handling bug came to be in about thirty places, so a script that grows
+# its own curl call or its own migration again fails here.
+for s in "${ENTRY_SCRIPTS[@]}"; do
+    n=$(basename "$s")
+    eq "$n makes no request of its own (every call goes through lib.sh)" "" \
+       "$(grep -nE '(^|[^_[:alnum:]])curl[[:space:]]' "$s" || true)"
+    eq "$n defines no api helper of its own" "" \
+       "$(grep -nE '^[[:space:]]*api(_get|_post|_put|_delete)?[[:space:]]*\(\)' "$s" || true)"
+    eq "$n carries no migration of its own" "" "$(grep -n '\.trello"' "$s" || true)"
+    eq "$n reads no credential of its own" "" "$(grep -nE "'\\.(api_key|token)'" "$s" || true)"
+done
+
+# A PARTIAL INSTALL SAYS WHAT IS MISSING. The four other skills use lib.sh from
+# the trello skill beside them. Installed on their own - the skills CLI lets a
+# user pick one - they must name the missing skill and how to add it, not fail
+# with "No such file or directory" from a source line.
+for s in "$DIGEST" "$DUE" "$LIFE"; do
+    skill=$(basename "$(dirname "$(dirname "$s")")")
+    lone=$(mktemp -d); mkdir -p "$lone/skills" "$lone/bin" "$lone/home/.dbhq/trello"
+    cp -R "$REPO_ROOT/skills/$skill" "$lone/skills/$skill"
+    cp "$SANDBOX/bin/curl" "$lone/bin/curl"
+    cp "$SANDBOX/home/.dbhq/trello/config.json" "$lone/home/.dbhq/trello/config.json"
+    : > "$lone/curl.log"
+    out=$(env HOME="$lone/home" CURL_LOG="$lone/curl.log" PATH="$lone/bin:$PATH" \
+          bash "$lone/skills/$skill/scripts/$(basename "$s")" 2>&1; echo "rc=$?")
+    contains "$skill installed alone names the missing trello skill" "needs the trello skill" "$out"
+    contains "$skill installed alone gives the install command" "npx skills add dbhq-uk/trello-skill --skill trello" "$out"
+    contains "$skill installed alone exits non-zero" "rc=1" "$out"
+    eq "$skill installed alone makes no request" "0" "$(wc -l < "$lone/curl.log" | tr -d ' ')"
+    rm -rf "$lone"
+done
 
 # USAGE WITHOUT ARGUMENTS, AND WITHOUT A REQUEST. An unknown verb must not
 # reach the API: it is how a typo becomes a call against a path built from the

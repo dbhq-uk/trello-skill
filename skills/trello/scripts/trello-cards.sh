@@ -3,61 +3,9 @@
 
 set -e
 
-CONFIG_DIR="$HOME/.dbhq/trello"
-CONFIG_FILE="$CONFIG_DIR/config.json"
-
-# One-time migration: settings used to live at ~/.trello
-if [ ! -e "$CONFIG_DIR" ] && [ -d "$HOME/.trello" ]; then
-    mkdir -p "$HOME/.dbhq"
-    chmod 700 "$HOME/.dbhq"
-    mv "$HOME/.trello" "$CONFIG_DIR"
-    chmod 700 "$CONFIG_DIR"
-fi
-
-# Check config exists
-if [ ! -f "$CONFIG_FILE" ]; then
-    echo "Error: Config not found. Run trello-setup.sh first."
-    exit 1
-fi
-
-API_KEY=$(jq -r '.api_key' "$CONFIG_FILE")
-TOKEN=$(jq -r '.token' "$CONFIG_FILE")
-BASE_URL="https://api.trello.com/1"
-
-# Helper: make GET request
-api_get() {
-    local endpoint="$1"
-    local params="${2:-}"
-
-    if [ -n "$params" ]; then
-        curl -s "$BASE_URL$endpoint?key=$API_KEY&token=$TOKEN&$params"
-    else
-        curl -s "$BASE_URL$endpoint?key=$API_KEY&token=$TOKEN"
-    fi
-}
-
-# Helper: make POST request
-# Pass any caller-supplied text (names, descriptions, comments) with
-# --data-urlencode, not -d: curl sends -d raw, so an & truncates the value and
-# a + arrives as a space.
-api_post() {
-    local endpoint="$1"
-    shift
-    curl -s -X POST "$BASE_URL$endpoint?key=$API_KEY&token=$TOKEN" "$@"
-}
-
-# Helper: make PUT request
-api_put() {
-    local endpoint="$1"
-    shift
-    curl -s -X PUT "$BASE_URL$endpoint?key=$API_KEY&token=$TOKEN" "$@"
-}
-
-# Helper: make DELETE request
-api_delete() {
-    local endpoint="$1"
-    curl -s -X DELETE "$BASE_URL$endpoint?key=$API_KEY&token=$TOKEN"
-}
+# shellcheck source=lib.sh
+. "$(dirname "${BASH_SOURCE[0]}")/lib.sh"
+trello_load_config
 
 case "$1" in
     list)

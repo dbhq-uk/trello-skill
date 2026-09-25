@@ -4,41 +4,17 @@
 
 set -e
 
-CONFIG_DIR="$HOME/.dbhq/trello"
-CONFIG_FILE="$CONFIG_DIR/config.json"
-
-# One-time migration: settings used to live at ~/.trello
-if [ ! -e "$CONFIG_DIR" ] && [ -d "$HOME/.trello" ]; then
-    mkdir -p "$HOME/.dbhq"
-    chmod 700 "$HOME/.dbhq"
-    mv "$HOME/.trello" "$CONFIG_DIR"
-    chmod 700 "$CONFIG_DIR"
-fi
-
-if [ ! -f "$CONFIG_FILE" ]; then
-    echo "Error: Config not found. Run trello-setup.sh first." >&2
+# The shared helpers live in the trello skill, which sits beside this one in
+# the pack. A partial install without it gets told what is missing.
+TRELLO_LIB="$(dirname "${BASH_SOURCE[0]}")/../../trello/scripts/lib.sh"
+if [ ! -f "$TRELLO_LIB" ]; then
+    echo "Error: board-digest needs the trello skill from the same pack, installed beside it." >&2
+    echo "Install the whole pack, or add it with: npx skills add dbhq-uk/trello-skill --skill trello" >&2
     exit 1
 fi
-
-API_KEY=$(jq -r '.api_key' "$CONFIG_FILE")
-TOKEN=$(jq -r '.token' "$CONFIG_FILE")
-BASE_URL="https://api.trello.com/1"
-
-api_get() {
-    local endpoint="$1" params="${2:-}"
-    if [ -n "$params" ]; then
-        curl -s "$BASE_URL$endpoint?key=$API_KEY&token=$TOKEN&$params"
-    else
-        curl -s "$BASE_URL$endpoint?key=$API_KEY&token=$TOKEN"
-    fi
-}
-
-# Portable "N days ago" in UTC ISO8601 (GNU date, then BSD/macOS date fallback)
-days_ago_iso() {
-    local d="$1"
-    date -u -d "$d days ago" +%Y-%m-%dT%H:%M:%SZ 2>/dev/null \
-        || date -u -v-"${d}"d +%Y-%m-%dT%H:%M:%SZ
-}
+# shellcheck source=../../trello/scripts/lib.sh
+. "$TRELLO_LIB"
+trello_load_config
 
 cmd="${1:-digest}"
 
