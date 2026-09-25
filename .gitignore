@@ -7,6 +7,6 @@ Thumbs.db
 .idea/
 *.swp
 
-# Local credentials must never be committed (they live in ~/.trello, not here)
+# Local credentials must never be committed (they live in ~/.dbhq/trello, not here)
 .trello/
 config.json

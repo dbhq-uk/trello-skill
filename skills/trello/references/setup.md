@@ -105,11 +105,12 @@ chmod 600 ~/.dbhq/trello/config.json
 ## Revoking Access
 
 To revoke your token:
-1. Go to https://trello.com/power-ups/admin
-2. Select your Power-Up
-3. Delete or regenerate the API key/token
+1. Go to `https://trello.com/u/{username}/account`, with your Trello username in place of `{username}`
+2. Open **Applications**
+3. Revoke the token setup created, named `trello-skill`
 
-To completely remove the skill's access:
+The skill loses access at once. Then remove the local copy of the key and token:
 ```bash
-rm -rf ~/.dbhq/trello
+rm ~/.dbhq/trello/config.json
 ```
+Deleting the local copy on its own does not revoke the token - do both.

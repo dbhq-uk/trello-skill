@@ -37,9 +37,10 @@ An API key and token, which you create yourself at Trello and type into
   for as long as each request runs
 
 **Revoking access:** the token is yours, issued by Trello. Revoke it at
-<https://trello.com/my/account> under connected applications, and this skill
-loses access immediately. Deleting `~/.dbhq/trello/config.json` removes the local
-copy but does not revoke the token - do both.
+`https://trello.com/u/{username}/account`, with your Trello username in place of
+`{username}`, under Applications, where setup's token is named `trello-skill`.
+The skill loses access immediately. Deleting `~/.dbhq/trello/config.json`
+removes the local copy but does not revoke the token - do both.
 
 ### Scope of access
 
@@ -58,8 +59,19 @@ reachable if that breadth is a concern.
 
 ### On disk
 
-- Installs into `~/.claude/skills/trello` or `~/.codex`, depending on the agent
-- Reads and writes `~/.dbhq/trello/config.json` only
+- Installs five skill directories: into `~/.claude/skills/<skill>` as symlinks
+  to your clone (`install.sh`), into `~/.codex/skills/<skill>`
+  (`install-codex.sh`), or wherever your agent keeps plugins and skills
+- Reads and writes `~/.dbhq/trello/config.json`, the credential. Setup writes
+  it; every script reads it
+- Reads optional files of your own, and never writes them:
+  store-sort's own store layouts in `~/.dbhq/trello/stores/`, and life-manager's
+  config (`$LIFE_MANAGER_CONFIG`, `./life-manager.yaml` or
+  `~/.dbhq/trello/life-manager.yaml`)
+- Moves an old `~/.trello` to `~/.dbhq/trello` on first run, only when
+  `~/.dbhq/trello` does not exist yet
+- Keeps the pages of a long answer in a temporary directory from `mktemp`,
+  and deletes it before the script ends
 
 ## Credential write is umask-protected
 

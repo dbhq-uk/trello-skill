@@ -1493,6 +1493,42 @@ contains "trello/SKILL.md gives the shopping-list label rule" "$SHOPPING_RULE" "
 contains "store-sort/SKILL.md gives the same shopping-list label rule" "$SHOPPING_RULE" "$STORE_MD"
 unset TRELLO_MD STORE_MD SHOPPING_RULE
 
+# ONE DESCRIPTION OF THE PACK. plugin.json, the README and the listings each
+# worded the pack differently, and some left out store-sort or life-manager.
+# The two in this repo are now one sentence, and it names every skill.
+PLUGIN_DESC=$(jq -r '.description' "$REPO_ROOT/.claude-plugin/plugin.json")
+eq "the README tagline is plugin.json's description" "**$PLUGIN_DESC**" \
+   "$(grep -m1 -E '^\*\*.+\*\*$' "$REPO_ROOT/README.md")"
+for d in "$REPO_ROOT"/skills/*/; do
+    contains "plugin.json's description names $(basename "$d")" " $(basename "$d") " "$PLUGIN_DESC"
+done
+eq "the description fits GitHub's 350-character limit" "ok" \
+   "$([ "${#PLUGIN_DESC}" -le 350 ] && echo ok || echo "${#PLUGIN_DESC} characters")"
+unset PLUGIN_DESC
+
+# THE REPO DOCS SAY WHAT THE REPO DOES. They had a clone path nobody uses, a
+# skill count and a test count that had moved on, credentials in ~/.trello, a
+# roadmap with nothing behind it, a pre-PR list without the test suite, and two
+# different ways to revoke a token.
+CONTRIB=$(cat "$REPO_ROOT/CONTRIBUTING.md")
+contains "CONTRIBUTING's pre-PR list runs the test suite" "bash skills/trello/tests/helpers_test.sh" "$CONTRIB"
+absent "CONTRIBUTING does not say to re-run install.sh after a SKILL.md edit" \
+   "After editing a \`SKILL.md\`, re-run \`./install.sh\`" "$CONTRIB"
+DOCS=$(cd "$REPO_ROOT" && cat README.md CONTRIBUTING.md SECURITY.md AGENTS.md docs/*.md .gitignore \
+       skills/trello/references/setup.md)
+for stale in "dbhq-trello" "four skills" "in ~/.trello" "trello.com/my/account" "on the roadmap" "63 checks"; do
+    eq "no repo doc says \"$stale\"" "" "$(grep -n -F -- "$stale" <<< "$DOCS" || true)"
+done
+for f in SECURITY.md skills/trello/references/setup.md; do
+    contains "$f revokes a token on Trello's account page" "trello.com/u/{username}/account" "$(cat "$REPO_ROOT/$f")"
+done
+eq "setup.md's revoke steps do not send the user to the Power-Up admin page" "" \
+   "$(awk '/^## Revoking/{f=1} f' "$REPO_ROOT/skills/trello/references/setup.md" | grep -n 'power-ups' || true)"
+absent "SECURITY.md does not claim one file is all the skill reads" "config.json\` only" "$(cat "$REPO_ROOT/SECURITY.md")"
+contains "SECURITY.md names store-sort's own layouts" ".dbhq/trello/stores/" "$(cat "$REPO_ROOT/SECURITY.md")"
+contains "SECURITY.md names life-manager's config" "life-manager.yaml" "$(cat "$REPO_ROOT/SECURITY.md")"
+unset CONTRIB DOCS
+
 rm -rf "$SANDBOX"
 
 ########################################
