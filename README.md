@@ -88,7 +88,7 @@ Run the trello skill's setup once to add your Trello API key and token:
 scripts/trello-setup.sh    # from skills/trello/
 ```
 
-You will create a free Trello Power-Up to generate the key and token. They are stored locally in `~/.dbhq/trello/config.json` (permissions `600`) and never leave your machine. Full walkthrough in [`skills/trello/references/setup.md`](skills/trello/references/setup.md).
+Run it in a terminal, or with `! ` at the Claude Code prompt: you type the key and token yourself, so an agent cannot run it for you. You create a free Trello Power-Up for the key. Setup then prints a link that issues the token, read and write or read only, expiring after 1 day, 30 days or never. They are stored locally in `~/.dbhq/trello/config.json` (permissions `600`) and never leave your machine. Full walkthrough in [`skills/trello/references/setup.md`](skills/trello/references/setup.md).
 
 ## Development
 
@@ -100,7 +100,7 @@ Want to hack on the pack, add a skill, or run it from source with live edits? Se
 
 ## Credentials and privacy
 
-No secrets live in this repository. Your Trello key and token are stored locally under `~/.dbhq/trello/` and used only to talk to the Trello API directly from your machine. The token grants full access to your account - keep it secret.
+No secrets live in this repository. Your Trello key and token are stored locally under `~/.dbhq/trello/` and used only to talk to the Trello API directly from your machine. A read-write token can change anything your account can - keep it secret, or choose a read-only token at setup.
 
 ## Also from DBHQ
 

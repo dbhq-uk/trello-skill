@@ -19,9 +19,12 @@ between your machine and Trello directly.
 
 ### Credentials
 
-An API key and token, which you create yourself at Trello and paste into
+An API key and token, which you create yourself at Trello and type into
 `trello-setup.sh`.
 
+- Setup runs only at a terminal, so the user types the key and token and no
+  agent handles them. Run without one, it changes nothing and exits 3
+- The token is read with echo off, so it is not left on the screen
 - Stored at `~/.dbhq/trello/config.json`
 - The file is set to `600` (owner read/write only) immediately after it is
   written
@@ -40,10 +43,18 @@ copy but does not revoke the token - do both.
 
 ### Scope of access
 
-The token you issue governs what the skill can reach. Trello does not offer
-per-board tokens, so a standard token grants access to every board your account
-can see. Issue a token for an account that only has the boards you want reachable
-if that breadth is a concern.
+The token you issue governs what the skill can reach. Setup prints a link to
+Trello's `/1/authorize` page that names the token's scope and expiry, so you
+choose both:
+
+- **Read and write** (the default) or **read only**. A read-only token is all
+  board-digest and due-radar need, and with it nothing can be changed.
+- **1 day, 30 days** (the default) **or never**. An expiring token stops working
+  on its own if the config file goes astray.
+
+Trello does not offer per-board tokens, so any token reaches every board your
+account can see. Issue a token for an account that only has the boards you want
+reachable if that breadth is a concern.
 
 ### On disk
 
@@ -55,6 +66,10 @@ if that breadth is a concern.
 `trello-setup.sh` sets `umask 077` before writing `config.json` and restores the
 previous umask afterwards, so the file never exists - not even briefly - at the
 default `644`. It is then `chmod 600`, and `~/.dbhq/trello` is set to `700`.
+
+The file is written by `jq` from values it reads on stdin, so a `"` or `\` in a
+value is escaped and the file is always valid JSON, and the key and token are
+never `jq` arguments either.
 
 An earlier version chmod'd only after the write, leaving a short window in which
 another local user on a shared host could read the token. That window is closed.

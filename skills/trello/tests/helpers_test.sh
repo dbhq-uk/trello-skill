@@ -777,6 +777,132 @@ contains "trello/SKILL.md says to write a due date with an offset" "full ISO 860
    "$(cat "$REPO_ROOT/skills/trello/SKILL.md")"
 contains "and to default to 09:00 local" "09:00" "$(cat "$REPO_ROOT/skills/trello/SKILL.md")"
 
+# SETUP NEEDS A TERMINAL, AND SAYS SO. Run by an agent, with no terminal on
+# stdin, `read -p` met end of input and set -e ended the script with exit 1
+# straight after the banner - no word of why, so the agent could not tell the
+# user what to do. Now it exits 3 with the command for the user to run, and
+# changes nothing. Both with and without an existing config, because the old
+# script failed at a different prompt in each case.
+: > "$CURL_LOG"
+before=$(cat "$SANDBOX/home/.dbhq/trello/config.json")
+capture "$SETUP"
+eq "setup with no terminal exits 3" "3" "$RC"
+contains "setup with no terminal tells the agent to have the user run it" "Ask the user to run it" "$ERR"
+contains "and gives the command, with its full path, for the Claude Code prompt" "! $SETUP" "$ERR"
+absent "and prints no prompt that nobody can answer" "Overwrite?" "$OUT$ERR"
+eq "setup with no terminal makes no request" "0" "$(wc -l < "$CURL_LOG" | tr -d ' ')"
+eq "setup with no terminal leaves an existing config alone" "$before" "$(cat "$SANDBOX/home/.dbhq/trello/config.json")"
+fresh=$(mktemp -d)
+env HOME="$fresh" CURL_LOG="$CURL_LOG" PATH="$SANDBOX/bin:$PATH" bash "$SETUP" </dev/null >/dev/null 2>&1
+eq "setup with no terminal and no config also exits 3" "3" "$?"
+eq "and writes no config" "absent" "$([ -e "$fresh/.dbhq/trello/config.json" ] && echo present || echo absent)"
+rm -rf "$fresh"
+
+# SETUP AT A TERMINAL. A real pseudo-terminal, driven the way a person would:
+# wait for each prompt, then type the answer. Python's pty module is the one
+# portable way to give the script a terminal on stdin; CI has python3.
+#
+# The key and token carry a " and a \. The old script wrote config.json
+# through an unquoted heredoc, so a " made the file invalid JSON, and read
+# without -r ate the \. The pty's echo comes back in the transcript, so the
+# test can also see that the token is not shown as it is typed: the key is
+# echoed, which proves the check can see echo at all.
+cat > "$SANDBOX/pty_drive.py" <<'PY'
+import os, pty, re, select, subprocess, sys, termios, time
+# pty_drive.py <script> [expect:<regex> | send:<text> | secret:<text>]...
+# expect waits up to 5 s for a regex (case-insensitive) after the last match;
+# a prompt that never comes is skipped along with the answer after it.
+# secret waits for the terminal's echo to go off before typing.
+script, steps = sys.argv[1], sys.argv[2:]
+master, slave = pty.openpty()
+proc = subprocess.Popen(["bash", script], stdin=slave, stdout=slave, stderr=slave,
+                        start_new_session=True)
+buf, pos, skip = b"", 0, False
+def pump(t):
+    global buf
+    r, _, _ = select.select([master], [], [], t)
+    if r:
+        try:
+            buf += os.read(master, 65536)
+        except OSError:
+            pass
+for step in steps:
+    kind, _, arg = step.partition(":")
+    if kind == "expect":
+        pat, end, skip = re.compile(arg.encode(), re.I), time.time() + 5, True
+        while time.time() < end and proc.poll() is None:
+            m = pat.search(buf, pos)
+            if m:
+                pos, skip = m.end(), False
+                break
+            pump(0.05)
+        continue
+    if skip:
+        continue
+    if kind == "secret":
+        end = time.time() + 2
+        while time.time() < end and termios.tcgetattr(slave)[3] & termios.ECHO:
+            time.sleep(0.02)
+    os.write(master, arg.encode() + b"\n")
+end = time.time() + 10
+while proc.poll() is None and time.time() < end:
+    pump(0.05)
+pump(0.2)
+sys.stdout.write(buf.decode("utf-8", "replace"))
+sys.exit(proc.returncode if proc.returncode is not None else 99)
+PY
+if command -v python3 >/dev/null 2>&1; then
+    export FAKE_DIR="$SANDBOX/setup"; mkdir -p "$FAKE_DIR"
+    echo '{"username":"sam","fullName":"Sam Test"}' > "$FAKE_DIR/members_me.json"
+    drive_setup() {  # drive_setup <home> <access> <expiry>; sets OUT and RC
+        OUT=$(env HOME="$1" CURL_LOG="$CURL_LOG" PATH="$SANDBOX/bin:$PATH" FAKE_DIR="$FAKE_DIR" \
+            python3 "$SANDBOX/pty_drive.py" "$SETUP" \
+            'expect:api key: ' 'send:KEY"with\slash' \
+            'expect:read only\?' "send:$2" \
+            'expect:how long' "send:$3" \
+            'expect:token[^\n]*: ' 'secret:TOK"with\slash')
+        RC=$?
+    }
+    fresh=$(mktemp -d)
+    : > "$CURL_LOG"
+    drive_setup "$fresh" "" ""
+    cfg="$fresh/.dbhq/trello/config.json"
+    eq "setup at a terminal exits 0" "0" "$RC"
+    eq "a \" or \\ in the key and token still makes a valid config file" "valid" \
+       "$(jq -e . "$cfg" >/dev/null 2>&1 && echo valid || echo invalid)"
+    eq "and the key is stored exactly as typed" 'KEY"with\slash' "$(jq -r '.api_key' "$cfg" 2>/dev/null)"
+    eq "and the token is stored exactly as typed" 'TOK"with\slash' "$(jq -r '.token' "$cfg" 2>/dev/null)"
+    eq "config.json is 600" "600" "$(stat -c '%a' "$cfg" 2>/dev/null || stat -f '%Lp' "$cfg")"
+    contains "the key is echoed as it is typed (so the next check can see echo)" 'KEY"with\slash' "$OUT"
+    absent "the token is not echoed as it is typed" "TOK" "$OUT"
+    contains "setup tests the credentials before saving them" "Connected as: Sam Test (@sam)" "$OUT"
+    contains "setup prints Trello's authorize link" "https://trello.com/1/authorize?" "$OUT"
+    contains "the link asks for read and write by default" "scope=read,write&" "$OUT"
+    contains "the link names an expiry, 30 days by default" "expiration=30days&" "$OUT"
+    contains "the link names the application" "name=trello-skill&" "$OUT"
+    contains "the link carries the key, urlencoded" 'key=KEY%22with%5Cslash' "$OUT"
+    contains "setup offers a read-only token" "read only" "$OUT"
+    eq "the key and token never reach a command line" "0" "$(grep -c 'TOK\|KEY' "$CURL_LOG" || true)"
+    rm -rf "$fresh"
+
+    fresh=$(mktemp -d)
+    drive_setup "$fresh" "r" "never"
+    contains "choosing read only asks for scope=read" "scope=read&" "$OUT"
+    contains "and says what a read-only token cannot do" "This token is read only" "$OUT"
+    contains "choosing never asks for a token that does not expire" "expiration=never&" "$OUT"
+    rm -rf "$fresh"
+
+    fresh=$(mktemp -d)
+    drive_setup "$fresh" "maybe" ""
+    eq "an answer that is not w or r stops setup" "1" "$RC"
+    eq "and writes no config" "absent" "$([ -e "$fresh/.dbhq/trello/config.json" ] && echo present || echo absent)"
+    rm -rf "$fresh"
+    unset FAKE_DIR
+    unset -f drive_setup
+else
+    printf 'skip - setup at a terminal: python3 not found\n'
+fi
+
 rm -rf "$SANDBOX"
 
 ########################################

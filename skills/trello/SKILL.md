@@ -28,6 +28,10 @@ If not configured, run:
 ${CLAUDE_SKILL_DIR}/scripts/trello-setup.sh
 ```
 
+Setup asks for the API key and token at a terminal, and the user types them. Run from your shell, it has no terminal: it changes nothing, prints the command for the user and exits 3. Pass that on - the user types `! <path to trello-setup.sh>` at the Claude Code prompt, or runs the path in a terminal of their own. Never ask the user to paste the key or token into the chat, and never pass them to a script.
+
+Setup offers a read-only token, which is all board-digest and due-radar need, and a token that expires after 1 day, 30 days (the default) or never. With a read-only token any change fails with HTTP 401. An expired token answers `invalid token` to everything. The fix for both is to run setup again.
+
 ## Board & List Operations
 
 ```bash
@@ -182,12 +186,13 @@ Always confirm before creating:
 
 Every script exits non-zero and prints Trello's HTTP status and message on stderr when a request fails. Long lists (a board's cards, its activity, a card's comments) are fetched page by page, so nothing is cut at Trello's 1000-result limit; if a result is ever still incomplete, stderr says "capped at N" and you must tell the user it is partial. Read that before telling the user anything: an error is never an empty result, and "No cards found." means Trello returned an empty list. An unknown verb prints usage on stderr and exits 2; `help` prints it on stdout.
 
-- **Invalid credentials** (HTTP 401, `invalid key` or `invalid token`): Re-run setup
+- **Invalid credentials** (HTTP 401, `invalid key` or `invalid token`): the token has expired or been revoked. Ask the user to run setup again (it needs their terminal)
+- **HTTP 401 on a change only, while reads work**: the token is read only. Ask the user to run setup again and choose read and write
 - **Board/list not found**: Check ID or use find command
 - **Rate limited** (HTTP 429): the scripts already retry three times, waiting 2, 4 and 8 seconds. If the error still reaches you, wait before trying again, and do not loop over many boards in one go (300 req/10s per key)
 
 ## Notes
 
 - Board/List/Card IDs can be found in Trello URLs or via list commands
-- The API key and token provide full access to your Trello account - keep them secret!
+- A read-write token can change anything the user's Trello account can - keep the key and token secret
 - Rate limits: 300 requests per 10 seconds per API key; 100 requests per 10 seconds per token

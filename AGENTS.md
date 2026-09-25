@@ -32,6 +32,7 @@ Each skill is `skills/<name>/SKILL.md` plus optional `scripts/` and `references/
 - Whether a list is a done list is `is_done_list` in `trello_jq_defs`, and nowhere else. A card in one with its due date not ticked is finished work: due-radar and board-digest name its list and never call it OVERDUE.
 - Any caller-supplied text sent to the API (card names, descriptions, comments) goes through `curl --data-urlencode`, never plain `-d` - `-d` sends the body raw, so an `&` silently truncates the value and a `+` arrives as a space.
 - No secrets in the repo - credentials live under `~/.dbhq/trello/`.
+- `trello-setup.sh` stays interactive. The user types the key and token; with no terminal on stdin it changes nothing, prints the command for the user and exits 3. The token is read with `read -rs`, and config.json is written by `jq` from stdin, so a `"` or `\` stays valid JSON and no credential is ever a process argument. The suite drives it through a real pseudo-terminal to prove all of this.
 - House style: British English, plain hyphens.
 
 ## Adding to the pack
