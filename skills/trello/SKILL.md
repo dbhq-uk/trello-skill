@@ -189,14 +189,9 @@ ${CLAUDE_SKILL_DIR}/scripts/trello-cards.sh checkitem-done <card-id> <item-id>
 
 This skill has no sorting workflow of its own. To put a shopping list into a supermarket's aisle order, use the **store-sort** skill, which carries the store preset. To order a life-manager board by category, use **life-manager**'s `sort`. To move one card, use `top`, `bottom` or `position` above.
 
-## Workflow: Adding Items
+## Adding a card
 
-Always confirm before creating:
-
-1. Parse user's request for: list, card title, optional description
-2. Find the appropriate board/list if not specified
-3. Show proposed card details to user
-4. Create card only after explicit approval
+Show the user the list, title and description you propose, and the label on a labelled board. Create the card only after they approve it, because it changes their Trello as soon as it exists.
 
 ## Error Handling
 

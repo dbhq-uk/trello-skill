@@ -145,7 +145,7 @@ ${CLAUDE_SKILL_DIR}/../trello/scripts/trello-cards.sh label-add <card-id> <label
 ```bash
 ${CLAUDE_SKILL_DIR}/scripts/life-board.sh config                 # the config path it found, and its contents
 ${CLAUDE_SKILL_DIR}/scripts/life-board.sh audit <board-id>       # list sizes, unlabelled cards, and up to 40 cards with no checklist and no description
-${CLAUDE_SKILL_DIR}/scripts/life-board.sh stale <list-id> <days> # cards untouched for N days - a rename or a move does not count
+${CLAUDE_SKILL_DIR}/scripts/life-board.sh stale <list-id> <days> # cards untouched for N days - a rename or a move within the list does not count
 ${CLAUDE_SKILL_DIR}/scripts/life-board.sh sort <list-id> "<order>" [--apply]
 ```
 
