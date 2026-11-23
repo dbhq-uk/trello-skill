@@ -17,6 +17,16 @@ Manage Trello boards, lists, and cards via the Trello REST API.
 - After organising a labelled board, check that no card on the lists you touched is left without a label.
 - On a shopping list the emoji at the start of each card's title is its category, so shopping cards carry no labels. That holds even on a board whose other lists use labels. store-sort sets that emoji.
 
+## Order - keep a sorted list sorted
+
+**After any change to the cards on a list, put that list back in category order in the same pass.** That covers adding, renaming, relabelling and moving a card into it. Do it without being asked, and do it for every list you touched, not only the cards you changed. A card put at the top or bottom of a sorted list leaves it out of order.
+
+- A shopping list (cards start with a food emoji) is sorted by **store-sort**. Run its full plan and apply, so the new card lands in its aisle section.
+- A list on a life-manager board is sorted by **life-manager**'s `sort`, with the user's `label_order`. life-manager moves nothing without approval, so put the re-sort in the plan you show.
+- A labelled list on any other board is sorted by the same `life-board.sh sort`, given the board's labels in the order the user wants. If no order is known, ask once, then keep to it.
+- Any other list with no category scheme (no labels and no emoji prefix) has no category order, so leave its order alone.
+- Then process the list again: run the same sort a second time. A sorted list gets no write, so if the second run writes anything, the first did not land; run it until a pass writes nothing. Finally read `list-json` and confirm every card sits in its category.
+
 ## Prerequisites
 
 - Credentials configured in `~/.dbhq/trello/` (run setup if not done)
@@ -187,11 +197,11 @@ ${CLAUDE_SKILL_DIR}/scripts/trello-cards.sh checkitem-done <card-id> <item-id>
 
 ## Sorting a whole list
 
-This skill has no sorting workflow of its own. To put a shopping list into a supermarket's aisle order, use the **store-sort** skill, which carries the store preset. To order a life-manager board by category, use **life-manager**'s `sort`. To move one card, use `top`, `bottom` or `position` above.
+This skill has no sorting workflow of its own. To put a shopping list into a supermarket's aisle order, use the **store-sort** skill, which carries the store preset. To order a life-manager board by category, use **life-manager**'s `sort`. To move one card, use `top`, `bottom` or `position` above. After any change to a sorted list, re-sort it (see "Order - keep a sorted list sorted").
 
 ## Adding a card
 
-Show the user the list, title and description you propose, and the label on a labelled board. Create the card only after they approve it, because it changes their Trello as soon as it exists.
+Show the user the list, title and description you propose, and the label on a labelled board. Create the card only after they approve it, because it changes their Trello as soon as it exists. Then put the list back in category order (see "Order - keep a sorted list sorted").
 
 ## Error Handling
 
