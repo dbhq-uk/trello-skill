@@ -17,7 +17,7 @@ jobs:
   # passes bash -n and shellcheck, ruff E9,F where there is Python (none
   # here), and no em or en dashes. Pinned by SHA; Dependabot moves the pin.
   floor:
-    uses: dbhq-uk/.github/.github/workflows/skill-floor.yml@af131df509f44eb9abfe8b37ad6299c11f496c5f
+    uses: dbhq-uk/.github/.github/workflows/skill-floor.yml@cce52cdffb1a7ce20b5bc5d033ba9e38eaa760ef
 
   validate:
     runs-on: ubuntu-latest
