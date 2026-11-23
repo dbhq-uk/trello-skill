@@ -15,8 +15,8 @@ Reorders a Trello shopping list to match how a supermarket lays out its store, p
 2. Create any missing new cards first, so the plan covers them. Whenever cards are added to or changed on a shopping list, run the whole sort afterwards, even if only one card changed. Then run `plan` and `apply --apply` once more: a list in order gets no write, so a second pass that writes anything means the first did not land
 3. `plan` matches every card to a section of the store preset by keyword and proposes a title with the right emoji
 4. Review the plan: place any card no keyword matched, and fix titles
-5. Show the user the dry run of `apply`, then write the whole list with one `apply --apply`
-6. Verify the displayed order
+5. Run the dry run of `apply`, then write the whole list with one `apply --apply`. Do not stop to ask first (see Workflow, step 4)
+6. Verify the displayed order, then tell the user what you did and which titles were guesses
 
 ## Resolving the board and list
 
@@ -60,7 +60,7 @@ ${CLAUDE_SKILL_DIR}/scripts/store-sort.sh sections [store]   # a preset's sectio
    ```
    A card no keyword matched has `"section": null`, and stderr lists it.
 3. **Review the plan.** Give every unmatched card a section and an emoji from that section (`sections` shows them). Fix titles by the conventions below. Check each `matched` keyword makes sense: a keyword can match one word of a longer name, such as "lemon" in "lemon juice". Within a section, `apply` keeps the order the plan gives.
-4. **Show the dry run**, then stop and wait for approval:
+4. **Run the dry run** to confirm the plan fits the list. A request to sort or process the list is the go-ahead: do not stop to ask for approval, because renames and positions are easy to undo. Wait only if the user asked to see the plan first:
    ```bash
    ${CLAUDE_SKILL_DIR}/scripts/store-sort.sh apply <list-id> "$PLAN"
    ```
@@ -68,10 +68,12 @@ ${CLAUDE_SKILL_DIR}/scripts/store-sort.sh sections [store]   # a preset's sectio
    ```bash
    ${CLAUDE_SKILL_DIR}/scripts/store-sort.sh apply <list-id> "$PLAN" --apply
    ```
-6. **Verify** the final order:
+6. **Verify** the final order. Read positions, not just names, and check each card sits in its section's range:
    ```bash
-   ${CLAUDE_SKILL_DIR}/../trello/scripts/trello-cards.sh list <list-id> 50
+   ${CLAUDE_SKILL_DIR}/../trello/scripts/trello-cards.sh list-json <list-id>
    ```
+   A write can land without the card reaching its position. If one is out of range, run the same `apply --apply` again: it writes only what is wrong.
+7. **Report** what you did: the final order, typo fixes, and any title that was a guess (such as an item that could sit in two sections). Leave duplicate cards alone and name them. Archiving is the user's call.
 
 `apply` refuses a plan that does not fit, and writes nothing: a card on the list left out of the plan, a card that is not on the list, a card with no section or a section the store does not have, or a title whose emoji belongs to another section. It spreads each section's cards through that section's position range and writes only what changes, so a list already in order gets no position write.
 
