@@ -25,7 +25,7 @@ Manage Trello boards, lists, and cards via the Trello REST API.
 - A list on a life-manager board is sorted by **life-manager**'s `sort`, with the user's `label_order`. life-manager moves nothing without approval, so put the re-sort in the plan you show.
 - A labelled list on any other board is sorted by the same `life-board.sh sort`, given the board's labels in the order the user wants. If no order is known, ask once, then keep to it.
 - Any other list with no category scheme (no labels and no emoji prefix) has no category order, so leave its order alone.
-- Then check the order you left: read `list-json` and confirm every card sits in its category.
+- Then process the list again: run the same sort a second time. A sorted list gets no write, so if the second run writes anything, the first did not land; run it until a pass writes nothing. Finally read `list-json` and confirm every card sits in its category.
 
 ## Prerequisites
 

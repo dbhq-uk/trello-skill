@@ -12,7 +12,7 @@ Reorders a Trello shopping list to match how a supermarket lays out its store, p
 ## How it works
 
 1. Resolve the target board and list
-2. Create any missing new cards first, so the plan covers them. Whenever cards are added to or changed on a shopping list, run the whole sort afterwards, even if only one card changed
+2. Create any missing new cards first, so the plan covers them. Whenever cards are added to or changed on a shopping list, run the whole sort afterwards, even if only one card changed. Then run `plan` and `apply --apply` once more: a list in order gets no write, so a second pass that writes anything means the first did not land
 3. `plan` matches every card to a section of the store preset by keyword and proposes a title with the right emoji
 4. Review the plan: place any card no keyword matched, and fix titles
 5. Show the user the dry run of `apply`, then write the whole list with one `apply --apply`
