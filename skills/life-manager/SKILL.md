@@ -166,7 +166,7 @@ ${CLAUDE_SKILL_DIR}/scripts/life-board.sh sort <list-id> "Now:🔥,Health:❤️
 - An entry's emoji replaces any emoji at the front of the title, so a re-run never doubles it. Symbols such as `£`, `©` and `°` stay. A card whose entry has no emoji, or that has no label in the order, keeps its title byte for byte.
 - `--apply` writes only what must change; a sorted list gets no write. The first write Trello refuses stops the run, names the card and says the list is only partly sorted. Fix the cause and run `--apply` again.
 - Do not invent an emoji set. Ask, or offer suggestions the user can veto.
-- Re-sort a list after any pass that changed labels or moved cards into it.
+- Re-sort a list after any pass that added cards to it, changed their labels or titles, or moved cards into it.
 
 ## Rules that hold in every mode
 
